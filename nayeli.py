@@ -177,6 +177,17 @@ if menu == "🏠 Inicio / Materias":
             st.info("Próximamente disponible.")
         st.markdown('</div>', unsafe_allow_html=True)
 
+    # MATERIA 4: INGLÉS
+    with st.expander("🇬🇧 INGLÉS (Color: Naranja)"):
+        st.markdown('<div class="section-animated">', unsafe_allow_html=True)
+        st.write("Aprende inglés básico para comunicarte en el mundo.")
+        if st.button("▶️ Lección 1: Saludos y presentaciones", key="ing_l1"):
+            st.session_state.pantalla_actual = "leccion_ing"
+            st.rerun()
+        if st.button("🔒 Lección 2: Vocabulario de compras (Premium)", key="ing_l2"):
+            st.warning("Esta lección requiere suscripción mensual.")
+        st.markdown('</div>', unsafe_allow_html=True)
+
     # CONTROL DE FLUJO INTERNO PARA MOSTRAR LA LECCIÓN DE OCTÓGONOS
     if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_cyt":
         st.markdown("---")
@@ -218,6 +229,63 @@ if menu == "🏠 Inicio / Materias":
                 if respuesta == "Contiene mucha sal y debes moderar su consumo.":
                     st.markdown('<div class="success-pulse">', unsafe_allow_html=True)
                     st.success("¡Excelente respuesta! El sodio es sal. Ganaste +10 puntos.")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    if not st.session_state.leccion_completada:
+                        st.session_state.puntos += 10
+                        st.session_state.leccion_completada = True
+                    st.balloons()
+                else:
+                    st.error("Respuesta incorrecta. ¡Revisa la teoría o la pista e inténtalo de nuevo!")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # CONTROL DE FLUJO INTERNO PARA MOSTRAR LA LECCIÓN DE INGLÉS
+    if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_ing":
+        st.markdown("---")
+        st.markdown('<div class="section-animated">', unsafe_allow_html=True)
+        st.subheader("🇬🇧 Lección: Saludos y Presentaciones en Inglés")
+        
+        tab1, tab2, tab3 = st.tabs(["📑 Teoría", "🎨 Pronunciación", "❓ El Reto"])
+        
+        with tab1:
+            st.write("""
+            Los **saludos básicos en inglés** son esenciales para comunicarte con personas alrededor del mundo:
+            
+            * 👋 **Hello** = Hola
+            * 🌅 **Good morning** = Buenos días
+            * ☀️ **Good afternoon** = Buenas tardes
+            * 🌙 **Good evening** = Buenas noches
+            * 😊 **How are you?** = ¿Cómo estás?
+            * 📝 **My name is...** = Mi nombre es...
+            * 👥 **Nice to meet you** = Mucho gusto en conocerte
+            """)
+            
+        with tab2:
+            st.write("""
+            **Pronunciación útil:**
+            
+            * Hello → [JeLOU] - Jelou
+            * How are you? → [Jau ar IU] - ¿Jau ar iu?
+            * My name is → [Mai neim iz] - Mai neim iz
+            * Nice to meet you → [Nais tu mit IU] - Nais tu mit iu
+            
+            💡 **Consejo:** Practica frente al espejo y escucha videos de pronunciación en YouTube.
+            """)
+            
+        with tab3:
+            st.write("**Pregunta:** ¿Cuál es la forma correcta de saludar a alguien en la mañana?")
+            respuesta = st.radio("Selecciona tu respuesta:", [
+                "Good evening",
+                "Good morning",
+                "Good night"
+            ])
+            
+            if st.button("💡 Solicitar Pista del Tutor"):
+                st.markdown('<span class="icon-spin">🤖</span> Tutor IA: Recuerda que "morning" significa mañana.', unsafe_allow_html=True)
+                
+            if st.button("Enviar Respuesta 🚀"):
+                if respuesta == "Good morning":
+                    st.markdown('<div class="success-pulse">', unsafe_allow_html=True)
+                    st.success("¡Excelente respuesta! Good morning es el saludo de la mañana. Ganaste +10 puntos.")
                     st.markdown('</div>', unsafe_allow_html=True)
                     if not st.session_state.leccion_completada:
                         st.session_state.puntos += 10
