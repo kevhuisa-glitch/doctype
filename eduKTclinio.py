@@ -62,6 +62,15 @@ if menu == "🏠 Inicio / Materias":
         if st.button("▶️ Lección 1: El punto y la coma en WhatsApp", key="com_l1"):
             st.info("Próximamente disponible.")
 
+    # MATERIA 4: INGLÉS (Nuevo)
+    with st.expander("🟣 INGLÉS (Color: Morado)"):
+        st.write("Aprende saludos, presentaciones y frases básicas para comunicarte en inglés.")
+        if st.button("▶️ Lección 1: Saludos y presentaciones", key="eng_l1"):
+            st.session_state.pantalla_actual = "leccion_eng"
+            st.rerun()
+        if st.button("🔒 Lección 2: Verbos irregulares (Premium)", key="eng_l2"):
+            st.warning("Esta lección requiere suscripción mensual.")
+
     # CONTROL DE FLUJO INTERNO PARA MOSTRAR LA LECCIÓN DE OCTÓGONOS
     if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_cyt":
         st.markdown("---")
@@ -107,6 +116,51 @@ if menu == "🏠 Inicio / Materias":
                     st.balloons()
                 else:
                     st.error("Respuesta incorrecta. ¡Revisa la teoría o la pista e inténtalo de nuevo!")
+
+    # CONTROL DE FLUJO PARA LA NUEVA LECCIÓN DE INGLÉS
+    if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_eng":
+        st.markdown("---")
+        st.subheader("🟣 Lección: Saludos y Presentaciones en Inglés")
+
+        tab1, tab2, tab3 = st.tabs(["📑 Teoría", "🎨 Ejemplo Real", "❓ El Reto"])
+
+        with tab1:
+            st.write("""
+            En inglés, los saludos más comunes dependen del momento del día:
+            * "Good morning" — Buenos días (usado por la mañana).
+            * "Good afternoon" — Buenas tardes (usado después del mediodía).
+            * "Good evening" — Buenas noches (saludo en la noche).
+            * "Good night" — Buenas noches (despedida, al irse a dormir).
+            Además, para presentarte puedes decir: "Hello, my name is..." o "Hi, I'm...".
+            """)
+
+        with tab2:
+            st.write("""
+            Ejemplo:
+            * Te encuentras con un profesor por la mañana: "Good morning, how are you?"
+            * Presentación corta: "Hi, I'm Carlos. Nice to meet you."
+            """)
+
+        with tab3:
+            st.write("**Pregunta:** Es de mañana y quieres saludar. ¿Cuál es el saludo correcto?")
+            respuesta_eng = st.radio("Selecciona tu respuesta:", [
+                "Good night",
+                "Good morning",
+                "Goodbye"
+            ])
+
+            if st.button("💡 Solicitar Pista del Tutor", key="eng_hint"):
+                st.info("🤖 Tutor IA: Usa este saludo al empezar el día.")
+
+            if st.button("Enviar Respuesta 🚀", key="eng_send"):
+                if respuesta_eng == "Good morning":
+                    st.success("¡Bien hecho! Has elegido el saludo correcto. Ganaste +8 puntos.")
+                    if not st.session_state.leccion_completada:
+                        st.session_state.puntos += 8
+                        st.session_state.leccion_completada = True
+                    st.balloons()
+                else:
+                    st.error("No es correcto. Revisa la teoría y vuelve a intentar.")
 
 # PANTALLA 2: PAYWALL (PAGO)
 elif menu == "👑 Hazte Premium":
