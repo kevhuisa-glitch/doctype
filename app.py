@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
 st.title("¡Hola, mundo!")
 
@@ -12,10 +13,17 @@ if st.button("Ingresar"):
     # Mostrar globos también al presionar "Ingresar"
     st.balloons()
 
-    # Mostrar un mapa mundi (centrado en 0,0) con algunos puntos representativos
-    coords = pd.DataFrame({
-        'lat': [0, 51.5074, 40.7128, -33.8688, 35.6895, -23.5505],
-        'lon': [0, -0.1278, -74.0060, 151.2093, 139.6917, -46.6333]
-    })
-    # Zoom bajo para ver el mapa mundi completo
+    # Mostrar un mapa mundi completo como planeta tierra
+    # Crear una cuadrícula de puntos alrededor del mundo
+    latitudes = np.linspace(-90, 90, 19)  # Filas
+    longitudes = np.linspace(-180, 180, 37)  # Columnas
+    
+    coords_list = []
+    for lat in latitudes:
+        for lon in longitudes:
+            coords_list.append({'lat': lat, 'lon': lon})
+    
+    coords = pd.DataFrame(coords_list)
+    
+    # Mostrar el mapa mundi completo
     st.map(coords, zoom=0)
