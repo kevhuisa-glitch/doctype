@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 
 st.title("¡Hola, mundo!")
 
@@ -13,19 +14,42 @@ if st.button("Ingresar"):
     # Mostrar globos también al presionar "Ingresar"
     st.balloons()
 
-    # Crear un mapa que representa el planeta tierra
-    # Generar una malla densa de puntos para simular la forma del planeta
-    latitudes = np.linspace(-90, 90, 36)
-    longitudes = np.linspace(-180, 180, 72)
+    # Crear un planeta tierra 3D interactivo con Plotly
+    fig = go.Figure(data=[go.Scattergeo(
+        lon = [-180, -90, 0, 90, 180],
+        lat = [0, 0, 0, 0, 0],
+        mode = 'markers',
+        marker = dict(
+            size = 0,
+            color = 'rgba(0,0,0,0)'
+        )
+    )])
     
-    coords_list = []
-    for lat in latitudes:
-        for lon in longitudes:
-            coords_list.append({'lat': lat, 'lon': lon})
+    fig.update_geos(
+        projection_type = "orthographic",
+        showland = True,
+        landcolor = 'rgb(100, 150, 80)',
+        showocean = True,
+        oceancolor = 'rgb(30, 90, 150)',
+        showlakes = True,
+        lakecolor = 'rgb(50, 120, 180)',
+        showcoastline = True,
+        coastlinecolor = 'rgb(80, 120, 90)',
+        coastlinewidth = 1,
+        countrywidth = 0.5,
+        countrycolor = 'rgb(200, 200, 200)',
+        showframe = False,
+        bgcolor = 'rgba(0, 0, 0, 0.1)'
+    )
     
-    coords = pd.DataFrame(coords_list)
+    fig.update_layout(
+        title = "🌍 Planeta Tierra 3D",
+        height = 600,
+        margin = dict(l=0, r=0, t=50, b=0),
+        paper_bgcolor = 'rgba(10, 10, 30, 0.9)',
+        font = dict(color = 'white', size = 12)
+    )
     
-    # Mostrar el mapa del planeta tierra
-    st.map(coords, zoom=0, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=True)
     
-    st.info("🌍 Este es el mapa del planeta tierra con una cuadrícula global de puntos")
+    st.success("✨ Visualización interactiva del planeta tierra. ¡Haz clic y arrastra para rotar!")
