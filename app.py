@@ -25,7 +25,7 @@ if st.button("Ingresar"):
         )
     )])
     
-    fig.update_geos(
+    fig.update_layout(geo=dict(projection_type='orthographic', showland=True, landcolor='rgb(100, 150, 80)', showocean=True, oceancolor='rgb(30, 90, 150)'))(
         projection_type = "orthographic",
         showland = True,
         landcolor = 'rgb(100, 150, 80)',
