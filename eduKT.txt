@@ -1,0 +1,2096 @@
+import math
+import random
+import re
+from datetime import datetime, timedelta
+from hashlib import md5
+from urllib.parse import quote
+
+import streamlit as st
+
+# Configuración de la página simulando una pantalla móvil
+st.set_page_config(page_title="eduKT", page_icon="🎓", layout="centered")
+
+st.markdown(
+    """
+    <style>
+    :root {
+        --zona-azul: #2457a6;
+        --zona-celeste: #eaf4ff;
+        --zona-amarillo: #fff4c2;
+        --zona-verde: #e6f5ed;
+        --zona-tinta: #18324b;
+        --zona-coral: #e87861;
+    }
+    .stApp {
+        isolation: isolate;
+        overflow: hidden;
+        background: #e8f3ff;
+        background-attachment: fixed;
+        color: var(--zona-tinta);
+    }
+    .stApp::before,
+    .stApp::after {
+        border-radius: 50%;
+        content: "";
+        pointer-events: none;
+        position: fixed;
+        z-index: 0;
+    }
+    .stApp::before {
+        background:
+            radial-gradient(circle at 12% 18%, rgba(36, 87, 166, 0.18) 0 22px, transparent 23px),
+            radial-gradient(circle at 78% 28%, rgba(232, 120, 97, 0.16) 0 30px, transparent 31px),
+            radial-gradient(circle at 35% 80%, rgba(76, 170, 115, 0.15) 0 16px, transparent 17px),
+            radial-gradient(circle at 88% 84%, rgba(229, 174, 34, 0.18) 0 25px, transparent 26px);
+        inset: -5rem;
+        animation: burbujas-flotan 18s ease-in-out infinite alternate;
+    }
+    .stApp::after {
+        background:
+            radial-gradient(circle at 25% 55%, rgba(36, 87, 166, 0.1) 0 11px, transparent 12px),
+            radial-gradient(circle at 66% 12%, rgba(232, 120, 97, 0.12) 0 15px, transparent 16px),
+            radial-gradient(circle at 92% 48%, rgba(76, 170, 115, 0.12) 0 20px, transparent 21px);
+        inset: -3rem;
+        animation: burbujas-flotan 12s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes burbujas-flotan {
+        0% { transform: translate3d(-1%, 1%, 0) scale(1); }
+        50% { transform: translate3d(2%, -2%, 0) scale(1.03); }
+        100% { transform: translate3d(-2%, -4%, 0) scale(0.98); }
+    }
+    .stApp > * {
+        position: relative;
+        z-index: 1;
+    }
+    .edukt-logo {
+        align-items: center;
+        display: flex;
+        gap: 0.75rem;
+        margin: 0.3rem 0 1rem;
+    }
+    .edukt-logo__icon {
+        align-items: center;
+        background: var(--zona-amarillo);
+        border: 3px solid var(--zona-azul);
+        border-radius: 18px 18px 8px 18px;
+        box-shadow: 5px 5px 0 rgba(232, 120, 97, 0.28);
+        display: flex;
+        font-size: 1.55rem;
+        height: 3.25rem;
+        justify-content: center;
+        transform: rotate(-4deg);
+        width: 3.25rem;
+    }
+    .edukt-logo__name {
+        color: var(--zona-tinta);
+        font-size: 2rem;
+        font-weight: 850;
+        letter-spacing: 0;
+        line-height: 1;
+    }
+    .edukt-logo__tagline {
+        color: var(--zona-azul);
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-top: 0.3rem;
+    }
+    .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+    .stApp p, .stApp li, .stApp label, .stApp [data-testid="stCaptionContainer"] {
+        color: var(--zona-tinta);
+    }
+    .zona-banner {
+        background: linear-gradient(135deg, var(--zona-celeste), #ffffff);
+        border: 1px solid #c8def5;
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        margin: 0.5rem 0 1.2rem;
+        color: var(--zona-tinta);
+    }
+    .zona-ruta {
+        color: var(--zona-azul);
+        font-weight: 700;
+        letter-spacing: 0;
+    }
+    .zona-ficha {
+        background: var(--zona-amarillo);
+        border-left: 5px solid #e5ae22;
+        border-radius: 10px;
+        padding: 0.7rem 0.9rem;
+        margin: 0.6rem 0 1rem;
+        color: var(--zona-tinta);
+    }
+    .zona-pildora {
+        background: var(--zona-verde);
+        border: 1px solid #b9ddc8;
+        border-radius: 999px;
+        color: var(--zona-tinta);
+        font-size: 0.88rem;
+        font-weight: 700;
+        margin: 0.2rem 0;
+        padding: 0.55rem 0.7rem;
+        text-align: center;
+    }
+    div[data-testid="stExpander"] {
+        border-color: #c8def5;
+        border-radius: 12px;
+    }
+    div[data-testid="stRadio"] > div {
+        gap: 0.55rem;
+    }
+    div[data-testid="stRadio"] label {
+        background: #1f6fb2;
+        border: 2px solid #124a83;
+        border-radius: 999px;
+        box-shadow: 0 3px 0 rgba(19, 61, 111, 0.2);
+        cursor: pointer;
+        margin: 0.22rem 0;
+        padding: 0.52rem 0.8rem;
+        transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+    }
+    div[data-testid="stRadio"] label p {
+        color: #ffffff;
+        font-weight: 600;
+    }
+    div[data-testid="stRadio"] label,
+    div[data-testid="stRadio"] label span,
+    div[data-testid="stRadio"] label div {
+        color: #ffffff !important;
+    }
+    div[data-testid="stRadio"] label:hover {
+        background: #2d82c9;
+        border-color: #174477;
+        box-shadow: 0 5px 0 rgba(19, 61, 111, 0.28);
+        transform: translateY(-2px);
+    }
+    div[data-testid="stRadio"] label:has(input:checked) {
+        background: #0e477e;
+        border-color: #f5c451;
+        box-shadow: 0 4px 0 rgba(19, 61, 111, 0.32);
+    }
+    div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+        background: rgba(255, 255, 255, 0.94);
+        border: 2px solid #c8def5;
+        border-radius: 999px;
+        color: var(--zona-tinta);
+    }
+    form div[data-testid="stRadio"] label,
+    form div[data-testid="stRadio"] label:hover,
+    form div[data-testid="stRadio"] label:has(input:checked) {
+        background: #1f6fb2;
+        border: 1px solid #d7e3ee;
+        border-radius: 8px;
+        box-shadow: none;
+        transform: none;
+    }
+    form div[data-testid="stRadio"] label p {
+        color: #ffffff;
+    }
+    form div[data-testid="stRadio"] label span,
+    form div[data-testid="stRadio"] label div {
+        color: #ffffff !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Inicializar variables de estado del usuario (Base de datos temporal)
+if "puntos_inicializados_v2" not in st.session_state:
+    st.session_state.puntos = 0
+    st.session_state.puntos_inicializados_v2 = True
+if "nivel" not in st.session_state:
+    st.session_state.nivel = None
+if "perfiles" not in st.session_state:
+    st.session_state.perfiles = {}
+if "usuario_actual" not in st.session_state:
+    st.session_state.usuario_actual = None
+if "menu_navegacion" not in st.session_state:
+    st.session_state.menu_navegacion = "🏠 Inicio / Materias"
+if st.session_state.pop("redirigir_inicio", False):
+    st.session_state.menu_navegacion = "🏠 Inicio / Materias"
+if "premium" not in st.session_state:
+    st.session_state.premium = False
+if "premium_pagado" not in st.session_state:
+    st.session_state.premium_pagado = False
+if "premium_expira" not in st.session_state:
+    st.session_state.premium_expira = None
+if st.session_state.premium and not st.session_state.premium_pagado and not st.session_state.premium_expira:
+    st.session_state.premium_expira = (
+        datetime.now() + timedelta(days=7)
+    ).isoformat()
+if "leccion_completada" not in st.session_state:
+    st.session_state.leccion_completada = False
+if "racha" not in st.session_state:
+    st.session_state.racha = 0
+if "racha_temas" not in st.session_state:
+    st.session_state.racha_temas = 0
+if "racha_respuestas" not in st.session_state:
+    st.session_state.racha_respuestas = st.session_state.racha
+if "temas_completados" not in st.session_state:
+    st.session_state.temas_completados = set()
+
+
+def guardar_perfil_actual():
+    """Guarda el avance actual para recuperarlo al volver a iniciar sesión."""
+    usuario = st.session_state.usuario_actual
+    if usuario:
+        perfil = st.session_state.perfiles[usuario]
+        perfil.update(
+            puntos=st.session_state.puntos,
+            nivel=st.session_state.nivel,
+            premium=st.session_state.premium,
+            premium_pagado=st.session_state.premium_pagado,
+            premium_expira=st.session_state.premium_expira,
+            racha=st.session_state.racha,
+            racha_temas=st.session_state.racha_temas,
+            racha_respuestas=st.session_state.racha_respuestas,
+            temas_completados=set(st.session_state.temas_completados),
+        )
+
+
+def cargar_perfil(usuario):
+    """Carga el progreso guardado de un perfil seleccionado."""
+    perfil = st.session_state.perfiles[usuario]
+    st.session_state.usuario_actual = usuario
+    for clave in (
+        "puntos", "nivel", "premium", "premium_pagado", "premium_expira",
+        "racha", "racha_temas", "racha_respuestas", "temas_completados",
+    ):
+        st.session_state[clave] = perfil[clave]
+
+CONCEPTOS_AREA = {
+    "Matemática": "representaciones, relaciones y procedimientos que permiten cuantificar, medir, modelar y resolver problemas",
+    "Comunicación": "la comprensión y producción de mensajes orales, escritos y multimodales según su propósito y contexto",
+    "Ciencia, Tecnología y Ambiente (CIT)": "la explicación de fenómenos naturales y el diseño de soluciones a partir de observaciones y evidencias",
+    "Ciencias Sociales": "las relaciones entre personas, sociedades, territorios, procesos históricos e instituciones",
+}
+
+EJEMPLOS_AREA = {
+    "Matemática": "calcular un cambio, comparar cantidades, medir una superficie o interpretar datos",
+    "Comunicación": "comprender un aviso, escribir una instrucción, narrar un hecho o defender una opinión",
+    "Ciencia, Tecnología y Ambiente (CIT)": "explicar un fenómeno, analizar un alimento, cuidar un ecosistema o evaluar una solución tecnológica",
+    "Ciencias Sociales": "interpretar una fuente, ubicar un territorio, explicar un cambio histórico o resolver un problema ciudadano",
+}
+
+DETALLES_SUBTEMA = {
+    "Muchos y pocos": "Muchos indica que una colección contiene una cantidad mayor en comparación con otra; pocos indica una cantidad menor. La comparación se realiza observando, emparejando elemento por elemento o contando cuando sea posible.",
+    "Uno y ninguno": "Uno significa que existe exactamente un elemento; ninguno significa que no existe ningún elemento. Estas cantidades permiten describir colecciones y reconocer cuándo una acción agrega o retira el único objeto.",
+    "Círculo, cuadrado y triángulo": "El círculo es una figura plana redonda cuyos puntos están a la misma distancia del centro. El cuadrado tiene cuatro lados iguales y cuatro esquinas. El triángulo tiene tres lados y tres esquinas; sus lados pueden tener distintas longitudes.",
+    "Tamaños y posiciones": "El tamaño compara dimensiones, como grande y pequeño, mientras que la posición indica dónde está un objeto respecto de otro: arriba, abajo, delante, detrás, dentro o fuera.",
+    "Números del 1 al 5": "Los números del 1 al 5 representan cantidades ordenadas. Cada número se obtiene al añadir uno al anterior y el último número contado indica cuántos elementos hay en total.",
+    "Números del 1 al 10": "Los números del 1 al 10 representan cantidades y ocupan un lugar en una secuencia. Comparar dos números permite determinar cuál es mayor, menor o igual, y juntar colecciones introduce la suma.",
+    "Sumas con objetos": "Sumar significa reunir dos o más cantidades para obtener una cantidad total. Los objetos sirven para representar cada cantidad, juntar las colecciones y contar el resultado.",
+    "Vocales y sonido inicial": "Las vocales a, e, i, o y u son sonidos que se producen sin cerrar el paso del aire. Reconocer la vocal inicial permite relacionar el sonido con su representación escrita en palabras conocidas.",
+    "Números enteros": "Los números enteros forman el conjunto Z = {..., -3, -2, -1, 0, 1, 2, 3, ...}. Incluyen los números naturales, sus opuestos negativos y el cero. En la recta numérica, los positivos se ubican a la derecha del cero y los negativos a la izquierda; por eso, un número es mayor cuanto más a la derecha se encuentra. El valor absoluto |a| es la distancia de a al cero, de modo que |-5| = 5 y |5| = 5. Para sumar enteros con el mismo signo se suman sus valores absolutos y se conserva el signo; con signos distintos se restan los valores absolutos y se conserva el signo del número de mayor valor absoluto. Restar equivale a sumar el opuesto: a - b = a + (-b). Al multiplicar o dividir, signos iguales producen resultado positivo y signos distintos producen resultado negativo.",
+}
+
+GUIAS_AREA = {
+    "Matemática": {
+        "teoria": "Se identifican las cantidades, relaciones, unidades y propiedades que intervienen. Si el subtema requiere cálculo, se representa la situación con una expresión, se opera respetando el orden correspondiente y se comprueba que el resultado tenga sentido en su unidad.",
+        "ejemplo": "Una compra de 3 cuadernos a S/ 4 cada uno cuesta 3 × 4 = S/ 12. Si se paga con S/ 20, el cambio es 20 − 12 = S/ 8.",
+        "ejercicios": [
+            "Calcula una operación sencilla relacionada con el subtema y escribe cada paso.",
+            "Una persona tiene 8 unidades y recibe 5 más. ¿Cuántas unidades tiene ahora? Expresa la operación.",
+            "Un objeto rectangular mide 6 cm de largo y 3 cm de ancho. Calcula su perímetro.",
+            "Una familia compra 4 productos de S/ 7 cada uno y paga con S/ 40. ¿Cuánto recibe de cambio?",
+        ],
+        "soluciones": [
+            "Se identifican los datos, se elige la operación correspondiente, se calcula y se verifica la unidad del resultado.",
+            "8 + 5 = 13. La persona tiene 13 unidades.",
+            "P = 2 × (6 + 3) = 2 × 9 = 18 cm.",
+            "4 × 7 = S/ 28; S/ 40 − S/ 28 = S/ 12 de cambio.",
+        ],
+        "evaluacion": ("Una entrada cuesta S/ 18 y tiene un descuento de S/ 5. ¿Cuál es el precio final?", ["S/ 13", "S/ 23", "S/ 90"], "S/ 13"),
+        "examen": [
+            ("Una caja tiene 6 filas de 4 objetos. ¿Cuántos objetos contiene?", ["10", "24", "28"], "24"),
+            ("Un recorrido mide 15 km y ya se avanzaron 9 km. ¿Cuántos faltan?", ["6 km", "24 km", "135 km"], "6 km"),
+            ("¿Qué procedimiento es válido para comprobar un cálculo?", ["Revisar la operación y la unidad", "Ignorar los datos", "Cambiar el resultado sin recalcular"], "Revisar la operación y la unidad"),
+        ],
+    },
+    "Comunicación": {
+        "teoria": "El subtema se interpreta dentro de un mensaje situado en un contexto. Se reconocen emisor, destinatario, propósito, ideas principales, información explícita e inferencias; en la escritura se consideran coherencia, cohesión, vocabulario y normas de puntuación.",
+        "ejemplo": "En el aviso 'La biblioteca atenderá el viernes de 3 a 5 p. m.', el propósito es informar, el horario es la idea central y el destinatario es quien necesita usar la biblioteca.",
+        "ejercicios": [
+            "Lee: 'Mañana se realizará la reunión a las 4 p. m.'. Identifica propósito, destinatario y dato principal.",
+            "Lee: 'Ana llevó paraguas porque el cielo estaba nublado'. ¿Qué causa explica que llevara paraguas?",
+            "Escribe tres oraciones conectadas para explicar una actividad de tu comunidad.",
+            "Corrige la oración: 'los estudiantes, visitaron el museo y observaron pinturas'. Explica el uso de la mayúscula y la coma.",
+        ],
+        "soluciones": [
+            "Propósito: informar; destinatario: quienes asistirán; dato principal: la reunión será mañana a las 4 p. m.",
+            "La causa es que el cielo estaba nublado; por eso Ana llevó paraguas.",
+            "Ejemplo de respuesta: 'La comunidad limpia el parque. Luego separa los residuos. Finalmente, coloca cada material en su contenedor.'",
+            "Corrección: 'Los estudiantes visitaron el museo y observaron pinturas.' Se escribe mayúscula al inicio y se elimina la coma entre sujeto y verbo.",
+        ],
+        "evaluacion": ("Un aviso anuncia 'Se suspende el partido por lluvia'. ¿Cuál es su propósito principal?", ["Informar una decisión", "Narrar una leyenda", "Describir un personaje"], "Informar una decisión"),
+        "examen": [
+            ("En 'Lleva abrigo porque bajará la temperatura', ¿qué relación expresa 'porque'?", ["Causa", "Oposición", "Enumeración"], "Causa"),
+            ("¿Cuál oración comunica una instrucción clara?", ["Cierra la puerta al salir.", "La puerta, quizás, cosas.", "Salir puerta cierre."], "Cierra la puerta al salir."),
+            ("Para sostener una interpretación de un texto se necesita principalmente:", ["Una evidencia textual", "Una palabra aislada", "Una opinión sin relación"], "Una evidencia textual"),
+        ],
+    },
+    "Ciencia, Tecnología y Ambiente (CIT)": {
+        "teoria": "El concepto se explica mediante observaciones, variables, evidencias y relaciones de causa y efecto. Una afirmación científica debe ser compatible con los datos; una solución tecnológica responde a una necesidad, considera restricciones y evalúa sus efectos sobre las personas y el ambiente.",
+        "ejemplo": "Si una planta recibe luz y otra permanece en oscuridad, la cantidad de luz es la variable que cambia; la altura y el color de ambas plantas son datos que permiten comparar el efecto.",
+        "ejercicios": [
+            "Observa el fenómeno relacionado con el subtema y registra dos características que puedan comprobarse.",
+            "En un experimento con plantas, una recibe luz y otra permanece en oscuridad. Identifica variable, comparación y resultado esperado.",
+            "Explica qué ocurre con un objeto, ser vivo o ecosistema del subtema usando dos evidencias observables.",
+            "Propón una solución para reducir el desperdicio de agua y señala un beneficio y una posible limitación.",
+        ],
+        "soluciones": [
+            "Se registran dos rasgos observables y medibles del fenómeno, por ejemplo, tamaño, color, temperatura o estado.",
+            "Variable: cantidad de luz; comparación: planta iluminada frente a planta en oscuridad; resultado esperado: la planta con luz crece mejor.",
+            "La explicación debe mencionar el fenómeno y dos datos observables que la respalden, por ejemplo, cambios de altura y color.",
+            "Solución: reparar fugas y cerrar el caño mientras no se usa. Beneficio: menor consumo; limitación: requiere revisar instalaciones y hábitos.",
+        ],
+        "evaluacion": ("Para evaluar si la luz afecta el crecimiento de una planta, ¿qué dato se debe comparar?", ["La altura de plantas con distinta luz", "El nombre de la planta solamente", "El color de la maceta sin medir crecimiento"], "La altura de plantas con distinta luz"),
+        "examen": [
+            ("¿Qué elemento permite respaldar una explicación científica?", ["Evidencias observables", "Una suposición sin datos", "Un dato inventado"], "Evidencias observables"),
+            ("Si se reduce el consumo de agua, una consecuencia esperable es:", ["Disminuir el desperdicio", "Aumentar automáticamente la lluvia", "Eliminar todos los ecosistemas"], "Disminuir el desperdicio"),
+            ("Una solución tecnológica debe evaluarse considerando:", ["Su utilidad, seguridad e impacto", "Solo su apariencia", "Solo su precio"], "Su utilidad, seguridad e impacto"),
+        ],
+    },
+    "Ciencias Sociales": {
+        "teoria": "El subtema se comprende al relacionar actores sociales, tiempo, espacio, decisiones, recursos e instituciones. Los procesos históricos y sociales se analizan con fuentes, causas, consecuencias, cambios, permanencias y distintas perspectivas, evitando confundir una opinión con una evidencia.",
+        "ejemplo": "Una migración del campo a la ciudad puede relacionarse con empleo, servicios y transporte; sus efectos pueden observarse en el crecimiento urbano y en nuevas formas de organización comunitaria.",
+        "ejercicios": [
+            "Ubica el hecho o problema del subtema en un tiempo, territorio y contexto social concretos.",
+            "Analiza una fuente sobre el subtema: identifica su autor, fecha, información principal y posible perspectiva.",
+            "Explica dos causas y dos consecuencias de un proceso histórico o social relacionado con el subtema.",
+            "Compara una situación del pasado con otra actual y señala un cambio, una permanencia y una evidencia para cada uno.",
+        ],
+        "soluciones": [
+            "Se indica cuándo ocurrió, dónde ocurrió y qué condiciones sociales, económicas o políticas lo rodearon.",
+            "Se registra autor y fecha, se resume la información principal y se reconoce la perspectiva según el contexto de la fuente.",
+            "La respuesta debe presentar dos causas que originan el proceso y dos consecuencias que aparecen después, diferenciándolas con claridad.",
+            "Se formula una comparación con un cambio verificable, una permanencia verificable y una evidencia concreta para cada afirmación.",
+        ],
+        "evaluacion": ("Para explicar un proceso histórico, ¿qué combinación ofrece una interpretación sustentada?", ["Causas, consecuencias y fuentes", "Solo una fecha aislada", "Una opinión sin evidencia"], "Causas, consecuencias y fuentes"),
+        "examen": [
+            ("Una fuente histórica sirve para:", ["Aportar evidencia sobre el pasado", "Predecir cualquier hecho sin análisis", "Reemplazar todas las fuentes"], "Aportar evidencia sobre el pasado"),
+            ("Si aumentan las oportunidades de empleo en una ciudad, una posible consecuencia es:", ["Mayor migración hacia ella", "Desaparición inmediata del territorio", "Menor necesidad de transporte siempre"], "Mayor migración hacia ella"),
+            ("Una decisión ciudadana responsable considera:", ["Derechos, deberes y consecuencias", "Solo el beneficio individual", "Ninguna norma común"], "Derechos, deberes y consecuencias"),
+        ],
+    },
+}
+
+
+ETAPAS_NIVEL_ALTO = {
+    "4° grado",
+    "5° grado",
+    "6° grado",
+    "Ciclo preuniversitario",
+}
+
+
+def es_nivel_alto(nivel, etapa):
+    """Distingue los grados de Primaria de los grados homónimos de Secundaria."""
+    return (
+        nivel in {"Secundaria", "Preuniversitario"}
+        or nivel == "Primaria" and etapa in ETAPAS_NIVEL_ALTO
+        or etapa == "Ciclo preuniversitario"
+    )
+
+
+def preparar_ejercicios_nivel_alto(ejercicios, area, subtema):
+    """Convierte los ejercicios en casos extensos y exigentes, con respuesta concreta."""
+    instrucciones = {
+        "Matemática": (
+            "Organiza los datos, resuelve las operaciones en el orden correcto y expresa el resultado con su unidad."
+        ),
+        "Comunicación": (
+            "Relaciona la información explícita con una inferencia y fundamenta tu respuesta con un elemento del caso."
+        ),
+        "Ciencia, Tecnología y Ambiente (CIT)": (
+            "Identifica variables, describe el dato que comprobarías y formula una conclusión basada en evidencia."
+        ),
+        "Ciencias Sociales": (
+            "Relaciona actores, tiempo y territorio; distingue causas de consecuencias y sustenta la conclusión con una evidencia."
+        ),
+    }
+    instruccion = instrucciones[area]
+    return [
+        f"Caso aplicado de {area} sobre {subtema}: analiza cuidadosamente la situación. "
+        f"{ejercicio} {instruccion} Escribe al final únicamente la respuesta concreta solicitada."
+        for ejercicio in ejercicios
+    ]
+
+
+def generar_matematica_avanzada(subtema, etapa, nivel):
+    """Genera problemas matemáticos extensos con cálculo y modelación por nivel."""
+    if nivel == "Preuniversitario":
+        base = 3
+        etiqueta = "preuniversitario"
+    elif nivel == "Secundaria":
+        base = 2
+        etiqueta = "secundario"
+    else:
+        base = 1
+        etiqueta = "primario"
+
+    problemas = []
+    for indice in range(1, 21):
+        cantidad = indice + 3 * base
+        precio = indice + 5 * base
+        descuento = 10 + (indice % 3) * 5
+        problemas.append(
+            f"[{etiqueta}] Plantea y resuelve: una cooperativa compra {cantidad} cajas con "
+            f"{indice + 4} unidades cada una a S/ {precio} por unidad y recibe un descuento "
+            f"del {descuento} %. ¿Cuál es el costo final?"
+        )
+    for indice in range(1, 21):
+        largo = indice + 8 * base
+        ancho = indice + 3 * base
+        problemas.append(
+            f"[{etiqueta}] Un terreno rectangular de {largo} m de largo y {ancho} m de ancho "
+            f"se divide en {base + 1} zonas iguales para trabajar el subtema {subtema}. "
+            "Plantea el cálculo y determina el área de cada zona."
+        )
+    for indice in range(1, 21):
+        coeficiente = base + 2
+        resultado = indice * 3 + 10 * base
+        termino = indice + base
+        problemas.append(
+            f"[{etiqueta}] Plantea y resuelve la ecuación que representa esta situación: "
+            f"{coeficiente} veces un número, aumentado en {termino}, es igual a "
+            f"{coeficiente * resultado + termino}. ¿Cuál es el número?"
+        )
+    for indice in range(1, 21):
+        trabajadores = indice + 2 * base
+        horas = indice + 4 + base
+        nuevos_trabajadores = trabajadores + base + 2
+        problemas.append(
+            f"[{etiqueta}] {trabajadores} personas terminan un proyecto en {horas} horas "
+            f"manteniendo el mismo ritmo. Si trabajan {nuevos_trabajadores} personas con "
+            "igual productividad, plantea la proporción inversa y calcula cuántas horas necesitan."
+        )
+    for indice in range(1, 21):
+        total = indice + 10 * base
+        parte_a = indice + 2 * base
+        parte_b = indice + 3 * base
+        problemas.append(
+            f"[{etiqueta}] En una encuesta sobre {subtema}, una cantidad total de {total * 6} "
+            f"respuestas se reparte en la razón {parte_a}:{parte_b}:1. Plantea la proporción "
+            "y calcula cuántas respuestas corresponden al primer grupo."
+        )
+    return adaptar_ejercicios_subtema(problemas, "Matemática", subtema)
+
+
+def es_tema_fisica(subtema):
+    """Identifica los subtemas de Física del currículo de Ciencia y Tecnología."""
+    palabras_clave = (
+        "movimiento", "fuerza", "energía", "cinemática", "dinámica",
+        "electricidad", "ondas", "electromagnetismo", "sonido", "calor",
+    )
+    return any(palabra in subtema.lower() for palabra in palabras_clave)
+
+
+def generar_fisica_practica(subtema, etapa, nivel):
+    """Genera casos de Física con datos, fórmula planteable y resultado numérico."""
+    if nivel == "Preuniversitario":
+        base = 3
+        etiqueta = "preuniversitario"
+    elif nivel == "Secundaria":
+        base = 2
+        etiqueta = "secundario"
+    else:
+        base = 1
+        etiqueta = "primario"
+
+    problemas = []
+    for indice in range(1, 21):
+        distancia = (indice + base) * 10
+        tiempo = indice + base
+        problemas.append(
+            f"[{etiqueta}] En una práctica de {subtema}, una bicicleta recorre {distancia} m "
+            f"en {tiempo} s. Plantea la relación distancia/tiempo y calcula su velocidad media en m/s."
+        )
+    for indice in range(1, 21):
+        tiempo_caida = indice + base
+        altura = 5 * tiempo_caida**2
+        problemas.append(
+            f"[{etiqueta}] Se deja caer una herramienta desde {altura} m. Considera g = 10 m/s², "
+            f"sin resistencia del aire. Plantea la caída libre y calcula en cuánto tiempo llega al piso."
+        )
+    for indice in range(1, 21):
+        masa = indice + 2 * base
+        aceleracion = indice + base
+        problemas.append(
+            f"[{etiqueta}] Un carrito de laboratorio de {masa} kg parte del reposo y alcanza una "
+            f"aceleración constante de {aceleracion} m/s². Plantea F = m · a y calcula la fuerza neta en N."
+        )
+    for indice in range(1, 21):
+        fuerza = (indice + base) * 5
+        distancia = indice + 2 * base
+        problemas.append(
+            f"[{etiqueta}] Para mover una caja del laboratorio, se aplica una fuerza horizontal de "
+            f"{fuerza} N a lo largo de {distancia} m. Plantea el trabajo W = F · d y calcula la energía transferida en J."
+        )
+    for indice in range(1, 21):
+        frecuencia = indice + base
+        longitud = indice + 2
+        problemas.append(
+            f"[{etiqueta}] En una experiencia con una onda de {subtema}, la frecuencia es {frecuencia} Hz "
+            f"y la longitud de onda {longitud} m. Plantea v = f · λ y calcula su velocidad de propagación en m/s."
+        )
+    return adaptar_ejercicios_subtema(problemas, "Ciencia, Tecnología y Ambiente (CIT)", subtema)
+
+
+def generar_cyt_practica(subtema, etapa, nivel):
+    """Genera problemas prácticos de CIT ajustados al contenido del subtema."""
+    if nivel == "Preuniversitario":
+        base = 3
+        etiqueta = "preuniversitario"
+    elif nivel == "Secundaria":
+        base = 2
+        etiqueta = "secundario"
+    else:
+        base = 1
+        etiqueta = "primario"
+
+    tema = subtema.lower()
+    problemas = []
+    if any(palabra in tema for palabra in ("materia", "mezcla", "química", "atómica", "reacciones", "sustancias", "propiedades y cambios", "transformaciones", "estequiometría", "soluciones")):
+        for indice in range(1, 21):
+            masa = (indice + base) * 10
+            volumen = indice + base
+            problemas.append(
+                f"[{etiqueta}] Para analizar {subtema}, una muestra tiene {masa} g y ocupa {volumen} cm³. "
+                "Plantea densidad = masa/volumen y calcula su densidad en g/cm³."
+            )
+        for indice in range(1, 21):
+            soluto = indice + base
+            solucion = (indice + 2) * 10
+            problemas.append(
+                f"[{etiqueta}] En el laboratorio se disuelven {soluto} g de sustancia en {solucion} mL de solución "
+                f"para estudiar {subtema}. Plantea concentración = soluto/volumen y calcula los g/mL."
+            )
+    elif any(palabra in tema for palabra in ("ambiente", "ecosistema", "biodiversidad", "clima", "agua", "residuos", "reciclaje", "impacto humano", "mitigación", "ciclos naturales", "sostenibilidad")):
+        for indice in range(1, 21):
+            consumo = (indice + base) * 8
+            ahorro = indice + base
+            problemas.append(
+                f"[{etiqueta}] Una familia consume {consumo} L de agua al día al trabajar el tema {subtema}. "
+                f"Al reparar una fuga reduce {ahorro} L. Calcula el consumo diario final en litros."
+            )
+        for indice in range(1, 21):
+            residuos = indice + 4 * base
+            reciclados = indice + base
+            problemas.append(
+                f"[{etiqueta}] En una campaña sobre {subtema} se recolectan {residuos * 5} kg de residuos y "
+                f"se reciclan {reciclados * 2} kg. Calcula cuántos kilogramos no se reciclaron."
+            )
+    elif any(palabra in tema for palabra in ("cuerpo", "salud", "genética", "célula", "seres vivos", "animales", "planta", "alimentación", "reproducción", "herencia", "digestivo", "circulatorio", "molecular", "organismos")):
+        for indice in range(1, 21):
+            grupo_a = indice + base
+            grupo_b = indice + 2 * base
+            problemas.append(
+                f"[{etiqueta}] En una observación sobre {subtema}, se registran {grupo_a} organismos con una "
+                f"característica y {grupo_b} sin ella. Calcula el total de organismos observados."
+            )
+        for indice in range(1, 21):
+            dosis = indice + base
+            dias = indice + 3
+            problemas.append(
+                f"[{etiqueta}] Un procedimiento de cuidado relacionado con {subtema} requiere {dosis} mL por "
+                f"día durante {dias} días. Calcula el volumen total utilizado en mL."
+            )
+    else:
+        for indice in range(1, 21):
+            prueba_a = indice + base
+            prueba_b = indice + 2 * base
+            problemas.append(
+                f"[{etiqueta}] En una investigación sobre {subtema}, el tratamiento A produce {prueba_a * 3} "
+                f"unidades y el tratamiento B {prueba_b * 3} unidades. Calcula la diferencia entre resultados."
+            )
+        for indice in range(1, 21):
+            materiales = indice + base
+            por_material = indice + 2
+            problemas.append(
+                f"[{etiqueta}] Para diseñar una solución sobre {subtema}, se necesitan {materiales} piezas y "
+                f"cada pieza cuesta S/ {por_material}. Calcula el costo total del prototipo."
+            )
+
+    while len(problemas) < 100:
+        problemas.append(problemas[len(problemas) % 40].replace("Calcula", "Vuelve a calcular"))
+    return adaptar_ejercicios_subtema(
+        problemas[:100], "Ciencia, Tecnología y Ambiente (CIT)", subtema
+    )
+
+
+def generar_comunicacion_practica(subtema, etapa, nivel):
+    """Genera situaciones de lectura, escritura y oralidad según el subtema."""
+    etiqueta = nivel.lower() if nivel else "escolar"
+    tema = subtema.lower()
+    problemas = []
+    if any(palabra in tema for palabra in ("literatura", "cuento", "narrativa", "mito", "leyenda", "personajes", "géneros")):
+        tipo_texto = "cuento" if any(palabra in tema for palabra in ("cuento", "narrativa", "personajes")) else "leyenda"
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Lee este fragmento de {tipo_texto} sobre {subtema}: "
+                f"'Al final del día {indice}, la protagonista decidió volver al pueblo para reparar el puente.' "
+                "Identifica la acción que cambia la situación y explica qué elemento narrativo representa."
+            )
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Para analizar {subtema}, compara dos personajes: uno propone actuar y otro "
+                f"se opone en la escena {indice}. Determina qué conflicto se presenta y qué consecuencia produce."
+            )
+    elif any(palabra in tema for palabra in ("argument", "tesis", "opinión", "debate", "razones", "evidencias", "falacias")):
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] En un debate sobre {subtema}, una estudiante afirma: 'La propuesta {indice} "
+                "debe aplicarse porque los datos de la encuesta muestran una mejora'. Identifica la tesis y la evidencia."
+            )
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Una columna sobre {subtema} presenta una afirmación, una razón y un ejemplo "
+                f"en el párrafo {indice}. Decide qué elemento falta para que el argumento sea convincente."
+            )
+    elif any(palabra in tema for palabra in ("escritura", "redacción", "texto", "párrafos", "conectores", "oraciones", "cohesión", "coherencia")):
+        for indice, conector in enumerate(["por eso", "sin embargo", "además", "por tanto", "aunque"] * 4, start=1):
+            problemas.append(
+                f"[{etiqueta}] Completa el párrafo {indice} sobre {subtema}: 'El equipo revisó las fuentes; "
+                f"{conector}, corrigió sus datos'. Explica qué relación establece el conector entre ambas acciones."
+            )
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Revisa el párrafo {indice} sobre {subtema}: sus ideas aparecen desordenadas y "
+                "repite palabras. Selecciona la acción de edición que mejora primero su coherencia."
+            )
+    else:
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Lee el aviso {indice} sobre {subtema}: 'La actividad empieza el viernes a las "
+                "4 p. m.; trae tu cuaderno'. Identifica el propósito, el destinatario y la información que debe recordar."
+            )
+        for indice in range(1, 21):
+            problemas.append(
+                f"[{etiqueta}] Prepara una exposición breve sobre {subtema} para la situación {indice}. "
+                "Selecciona la organización que permite presentar una idea central, dos datos y una conclusión."
+            )
+    while len(problemas) < 100:
+        indice = len(problemas) + 1
+        base = problemas[indice % len(problemas)]
+        problemas.append(f"{base} Variante de análisis {indice}.")
+    return adaptar_ejercicios_subtema(problemas[:100], "Comunicación", subtema)
+
+
+def adaptar_problemas_al_tema(problemas, area, subtema, nivel):
+    """Vincula cada pregunta del examen con el tema elegido desde Primaria."""
+    aplicaciones = {
+        "Matemática": "Aplica el procedimiento matemático propio de este subtema y entrega el resultado solicitado.",
+        "Comunicación": "Responde usando la información y el propósito comunicativo propios de este subtema.",
+        "Ciencia, Tecnología y Ambiente (CIT)": "Relaciona los datos del caso con el concepto científico de este subtema.",
+        "Ciencias Sociales": "Interpreta el caso considerando el tiempo, el territorio y los actores de este subtema.",
+    }
+    return [
+        f"{problema} Tema aplicado: {subtema}. {aplicaciones[area]} Nivel: {nivel}."
+        for problema in problemas
+    ]
+
+
+def generar_banco_ejercicios(area, subtema, etapa=None, nivel=None):
+    """Genera un banco amplio de problemas prácticos para el área seleccionada."""
+    if area == "Matemática" and nivel in {"Primaria", "Secundaria", "Preuniversitario"}:
+        return generar_matematica_avanzada(subtema, etapa, nivel)
+    if area == "Comunicación":
+        return generar_comunicacion_practica(subtema, etapa, nivel)
+    if area == "Ciencia, Tecnología y Ambiente (CIT)" and es_tema_fisica(subtema):
+        return generar_fisica_practica(subtema, etapa, nivel)
+    if area == "Ciencia, Tecnología y Ambiente (CIT)":
+        return generar_cyt_practica(subtema, etapa, nivel)
+    if area == "Matemática":
+        ejercicios = [
+            f"Calcula {indice} + {indice + 3} y relaciona el resultado con {subtema}."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Una tienda vende {indice} productos a S/ {indice + 2} cada uno. ¿Cuál es el total?"
+            for indice in range(2, 22)
+        ]
+        ejercicios += [
+            f"Un rectángulo mide {indice + 2} cm por {indice} cm. Calcula su perímetro y área."
+            for indice in range(2, 22)
+        ]
+        ejercicios += [
+            f"Un tanque tiene {indice * 5} L y se usan {indice + 2} L. ¿Cuántos litros quedan?"
+            for indice in range(2, 22)
+        ]
+        ejercicios += [
+            f"Una familia ahorra S/ {indice * 10} durante {indice} meses. ¿Cuánto ahorra en total?"
+            for indice in range(2, 22)
+        ]
+    elif area == "Comunicación":
+        ejercicios = [
+            f"Lee: 'La actividad {indice} comenzará a las {indice + 7} a. m.'. Identifica propósito, destinatario y dato principal."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Completa una oración sobre {subtema} usando el conector '{conector}'."
+            for conector in [
+                "porque", "aunque", "por eso", "además", "sin embargo", "luego", "finalmente", "por tanto", "mientras", "cuando",
+                "ya que", "en cambio", "también", "después", "por consiguiente", "a pesar de que", "primero", "asimismo", "por lo tanto", "antes de que",
+            ]
+        ]
+        ejercicios += [
+            f"Escribe un título y dos ideas principales para un texto sobre {subtema} en una situación de la comunidad ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Corrige la oración {indice}: 'los estudiantes visitaron el museo y escribieron sobre {subtema}'."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Compara dos mensajes sobre {subtema} y decide cuál informa mejor; justifica con una evidencia ({indice})."
+            for indice in range(1, 21)
+        ]
+    elif area == "Ciencia, Tecnología y Ambiente (CIT)":
+        ejercicios = [
+            f"Observa un fenómeno de {subtema} y registra temperatura, tiempo o cantidad como dato medible ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"En un experimento de {subtema}, cambia la variable {variable}. ¿Qué resultado compararías?"
+            for variable in [
+                "luz", "agua", "temperatura", "tiempo", "cantidad de suelo", "distancia", "masa", "volumen", "salinidad", "movimiento",
+                "presión", "humedad", "pH", "velocidad", "frecuencia", "concentración", "superficie", "fuerza", "material", "tamaño de la muestra",
+            ]
+        ]
+        ejercicios += [
+            f"Explica una causa y un efecto observables relacionados con {subtema} en el caso {indice}."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Propón una solución tecnológica para un problema de {subtema}; indica un beneficio y una limitación ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Analiza dos evidencias sobre {subtema} y decide cuál respalda mejor la explicación ({indice})."
+            for indice in range(1, 21)
+        ]
+    else:
+        ejercicios = [
+            f"Ubica un hecho relacionado con {subtema} en un tiempo y territorio concretos ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Analiza una fuente sobre {subtema}: identifica autor, fecha, propósito y perspectiva ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Explica dos causas y dos consecuencias de un proceso social relacionado con {subtema} ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Compara una situación histórica y una actual vinculadas con {subtema}; señala un cambio ({indice})."
+            for indice in range(1, 21)
+        ]
+        ejercicios += [
+            f"Propón una decisión ciudadana para resolver un problema de {subtema} y menciona dos consecuencias ({indice})."
+            for indice in range(1, 21)
+        ]
+    if es_nivel_alto(nivel, etapa):
+        ejercicios = preparar_ejercicios_nivel_alto(ejercicios, area, subtema)
+    return adaptar_ejercicios_subtema(ejercicios, area, subtema)
+
+
+def generar_banco_examen(area, subtema, etapa=None, nivel=None):
+    """Devuelve 50 problemas variados, manteniendo tres niveles de dificultad."""
+    if area == "Matemática" and nivel in {"Primaria", "Secundaria", "Preuniversitario"}:
+        problemas = generar_matematica_avanzada(subtema, etapa, nivel)
+    elif area == "Comunicación":
+        problemas = generar_comunicacion_practica(subtema, etapa, nivel)
+    elif area == "Ciencia, Tecnología y Ambiente (CIT)" and es_tema_fisica(subtema):
+        problemas = generar_fisica_practica(subtema, etapa, nivel)
+    elif area == "Ciencia, Tecnología y Ambiente (CIT)":
+        problemas = generar_cyt_practica(subtema, etapa, nivel)
+    elif subtema == "Números enteros":
+        problemas = [
+            f"Calcula: {indice} + (-{indice + 2})."
+            for indice in range(1, 21)
+        ]
+        problemas += [
+            f"Calcula: (-{indice + 3}) - (-{indice})."
+            for indice in range(1, 21)
+        ]
+        problemas += [
+            f"Una temperatura de -{indice} °C aumenta {indice + 5} °C. ¿Cuál es la temperatura final?"
+            for indice in range(1, 21)
+        ]
+        problemas += [
+            f"Calcula: (-{indice + 2}) × {indice} y determina el signo del resultado."
+            for indice in range(1, 21)
+        ]
+        problemas += [
+            f"Un ascensor está en el piso -{indice} y sube {indice + 4} pisos. ¿En qué piso termina?"
+            for indice in range(1, 21)
+        ]
+    else:
+        problemas = generar_banco_ejercicios(area, subtema, etapa, nivel)
+
+    bloques = [problemas[indice:indice + 20] for indice in range(0, 100, 20)]
+    seleccionados = []
+    for bloque in bloques:
+        seleccionados.extend(random.sample(bloque, 10))
+    random.shuffle(seleccionados)
+    if nivel != "Inicial":
+        seleccionados = adaptar_problemas_al_tema(seleccionados, area, subtema, nivel)
+    return agregar_opciones_examen(area, seleccionados)
+
+
+def obtener_banco_examen(clave, area, subtema, etapa=None, nivel=None):
+    """Conserva el mismo examen durante un intento y permite renovarlo explícitamente."""
+    clave_examen = f"examen_{clave}"
+    clave_version = f"{clave_examen}_version"
+    if clave_examen not in st.session_state:
+        st.session_state[clave_examen] = generar_banco_examen(area, subtema, etapa, nivel)
+        st.session_state[clave_version] = st.session_state.get(clave_version, 0) + 1
+    return st.session_state[clave_examen]
+
+
+def obtener_version_examen(clave):
+    """Devuelve la versión del intento para aislar las respuestas del formulario."""
+    return st.session_state.get(f"examen_{clave}_version", 1)
+
+
+def agregar_opciones_examen(area, problemas):
+    """Convierte cada problema práctico en una pregunta con una respuesta correcta."""
+    preguntas = []
+    for indice, problema in enumerate(problemas, start=1):
+        if area == "Matemática":
+            opciones, correcta = opciones_matematica(problema, indice)
+        elif area == "Comunicación":
+            opciones, correcta = opciones_comunicacion(problema)
+        elif area == "Ciencia, Tecnología y Ambiente (CIT)":
+            opciones, correcta = opciones_ciencia(problema)
+        else:
+            opciones, correcta = opciones_sociales(problema)
+        opciones = completar_cinco_opciones(opciones, correcta, area, problema)
+        opciones = rotar_respuesta_correcta(opciones, correcta, indice)
+        preguntas.append((problema, opciones, correcta))
+    return preguntas
+
+
+def completar_cinco_opciones(opciones, correcta, area, problema):
+    """Añade dos distractores concretos para que cada pregunta tenga cinco opciones."""
+    if area == "Matemática":
+        valor = correcta.removeprefix("Resultado: ")
+        try:
+            numero = float(valor)
+            extras = [f"Resultado: {numero + 2:g}", f"Resultado: {numero - 2:g}"]
+        except ValueError:
+            extras = ["Resultado: 0", "Resultado: 1"]
+    elif area == "Comunicación":
+        extras = [
+            "Cambiar el propósito o los datos del mensaje sin justificarlo.",
+            "Responder con una opinión que no se relaciona con el texto.",
+        ]
+    elif area == "Ciencia, Tecnología y Ambiente (CIT)":
+        extras = [
+            "Concluir sin registrar datos ni controlar las condiciones del caso.",
+            "Elegir una explicación solo porque parece posible, sin comprobarla.",
+        ]
+    else:
+        extras = [
+            "Explicar el caso sin ubicarlo en su tiempo ni en su territorio.",
+            "Usar una afirmación general sin relacionarla con la fuente o los actores.",
+        ]
+    opciones_completas = list(opciones)
+    for opcion in extras:
+        if opcion not in opciones_completas and opcion != correcta:
+            opciones_completas.append(opcion)
+    return opciones_completas[:5]
+
+
+def rotar_respuesta_correcta(opciones, correcta, indice):
+    """Mezcla las alternativas para que el orden sea aleatorio en cada examen."""
+    return random.sample(opciones, len(opciones))
+
+
+def opciones_comunicacion(problema):
+    """Crea alternativas concretas según la actividad comunicativa planteada."""
+    if problema.startswith("["):
+        return opciones_comunicacion_practica(problema)
+    horario = re.search(r"actividad (\d+) comenzará a las ([\d ]+ a\. m\.)", problema)
+    conector = re.search(r"conector '([^']+)'", problema)
+    if horario:
+        actividad, hora = horario.groups()
+        correcta = f"Informar que la actividad {actividad} comienza a las {hora}."
+        distractores = [
+            f"Narrar una historia sobre la actividad {actividad} sin indicar horario.",
+            f"Describir un personaje que participa en la actividad {actividad}.",
+        ]
+    elif conector:
+        palabra = conector.group(1)
+        correcta = f"Usar «{palabra}» para unir ideas sobre el tema de forma coherente."
+        distractores = [
+            f"Reemplazar «{palabra}» por una palabra que no relacione las ideas.",
+            f"Escribir una frase sin verbo y dejar «{palabra}» aislado.",
+        ]
+    elif "Corrige la oración" in problema:
+        texto = re.search(r"Corrige la oración \d+: '([^']+)'", problema)
+        tema = texto.group(1).replace("los estudiantes", "Los estudiantes").replace(", visitaron", " visitaron") if texto else "Los estudiantes visitaron el museo."
+        correcta = tema.rstrip(".") + "."
+        distractores = [
+            tema.replace(" visitaron", ", visitaron") + ",",
+            tema.lower().replace(" y ", ", y ") + ",",
+        ]
+    elif "título" in problema:
+        correcta = "Elegir un título relacionado con el subtema y desarrollar dos ideas que lo expliquen."
+        distractores = [
+            "Copiar una oración sin relación y omitir las ideas principales.",
+            "Escribir solo una palabra llamativa sin explicar el contenido.",
+        ]
+    else:
+        correcta = "Preferir el mensaje que presenta datos claros y una evidencia relacionada con el subtema."
+        distractores = [
+            "Preferir el mensaje más extenso aunque no presente datos comprobables.",
+            "Elegir el mensaje por su apariencia sin revisar la información.",
+        ]
+    return [correcta, *distractores], correcta
+
+
+def opciones_comunicacion_practica(problema):
+    """Crea cinco respuestas vinculadas con la situación comunicativa del enunciado."""
+    if "fragmento de" in problema:
+        correcta = "La protagonista vuelve al pueblo: es la acción que modifica el conflicto narrativo."
+        distractores = [
+            "El puente es el narrador que cuenta todos los hechos.",
+            "El final del día es el destinatario del fragmento.",
+            "El pueblo es un conector que une las oraciones.",
+            "La protagonista es una evidencia estadística del relato.",
+        ]
+    elif "compara dos personajes" in problema:
+        correcta = "El conflicto es la oposición entre actuar y no actuar, y produce una decisión diferente."
+        distractores = [
+            "No existe conflicto porque ambos personajes hacen exactamente lo mismo.",
+            "El conflicto es únicamente describir el lugar donde ocurre la escena.",
+            "La consecuencia es cambiar el narrador sin modificar las acciones.",
+            "Los personajes funcionan como títulos y no intervienen en la historia.",
+        ]
+    elif "afirma:" in problema:
+        correcta = "La tesis es aplicar la propuesta y la evidencia son los datos de la encuesta."
+        distractores = [
+            "La tesis son las palabras de saludo y la evidencia es el nombre de la estudiante.",
+            "La tesis es la encuesta y la evidencia es una opinión sin datos.",
+            "No hay tesis porque el enunciado solo describe un lugar.",
+            "La evidencia es la propuesta y la tesis es una fecha del debate.",
+        ]
+    elif "qué elemento falta" in problema:
+        correcta = "Falta explicar cómo la razón y el ejemplo demuestran la afirmación principal."
+        distractores = [
+            "Falta eliminar la tesis para que el texto tenga menos información.",
+            "Falta reemplazar los datos por una opinión personal del lector.",
+            "Falta repetir la misma razón varias veces sin añadir ejemplos.",
+            "Falta cambiar el tema para que el argumento no sea específico.",
+        ]
+    elif "conector" in problema:
+        conector = re.search(r"; ([^,]+), corrigió", problema).group(1)
+        correcta = f"«{conector}» conecta las dos acciones y establece la relación indicada por su significado."
+        distractores = [
+            "El conector elimina la relación entre revisar y corregir.",
+            "El conector convierte las acciones en nombres de personas.",
+            "El conector indica siempre una fecha, aunque el texto no la mencione.",
+            "El conector reemplaza el verbo y deja incompleta la oración.",
+        ]
+    elif "acción de edición" in problema:
+        correcta = "Ordenar las ideas y eliminar repeticiones para que cada oración avance con claridad."
+        distractores = [
+            "Agregar oraciones sin relación para que el párrafo sea más largo.",
+            "Eliminar la idea central y conservar únicamente palabras repetidas.",
+            "Cambiar todas las palabras por sinónimos sin revisar el sentido.",
+            "Poner las ideas al azar y confiar en que el lector las ordene.",
+        ]
+    elif "Lee el aviso" in problema:
+        correcta = "Informar la actividad del viernes a las 4 p. m. y pedir que el destinatario lleve su cuaderno."
+        distractores = [
+            "Narrar una historia ficticia sin indicar actividad, horario ni material.",
+            "Describir un personaje y ocultar cuándo ocurre la actividad.",
+            "Expresar una opinión sobre el cuaderno sin comunicar una instrucción.",
+            "Comparar dos lugares sin decir quién debe asistir al aviso.",
+        ]
+    else:
+        correcta = "Presentar una idea central, organizar dos datos relacionados y cerrar con una conclusión."
+        distractores = [
+            "Leer datos aislados sin explicar su relación con el tema.",
+            "Empezar por una conclusión que no se conecta con la idea central.",
+            "Repetir una sola frase y omitir los datos de la exposición.",
+            "Presentar opiniones sin ordenar el contenido ni cerrar la exposición.",
+        ]
+    return [correcta, *distractores], correcta
+
+
+def opciones_ciencia(problema):
+    """Crea alternativas prácticas para observar, experimentar y proponer soluciones."""
+    if es_tema_fisica_enunciado(problema):
+        return opciones_fisica(problema)
+    if es_cyt_practico_enunciado(problema):
+        return opciones_cyt_practica(problema)
+    variable = re.search(r"variable ([^.]+)\. ¿Qué resultado", problema)
+    if variable:
+        nombre_variable = variable.group(1)
+        correcta = f"Comparar el resultado al cambiar la variable {nombre_variable}."
+        distractores = [
+            "Cambiar varias condiciones a la vez y no registrar los resultados.",
+            "Anotar una opinión sin comparar ningún dato del experimento.",
+        ]
+    elif "registra" in problema:
+        correcta = "Medir y registrar un dato observable, como temperatura, tiempo o cantidad."
+        distractores = [
+            "Anotar únicamente si el fenómeno parece interesante.",
+            "Inventar un resultado sin observar ni medir el fenómeno.",
+        ]
+    elif "solución tecnológica" in problema:
+        correcta = "Proponer una solución útil, señalar su beneficio y reconocer una limitación."
+        distractores = [
+            "Elegir una solución solo por su apariencia y ocultar sus efectos.",
+            "Aplicar una idea sin comprobar si responde al problema planteado.",
+        ]
+    elif "evidencias" in problema:
+        correcta = "Respaldar la explicación con la evidencia que muestra un dato observable."
+        distractores = [
+            "Respaldar la explicación con una suposición sin mediciones.",
+            "Descartar los datos y elegir la explicación más llamativa.",
+        ]
+    else:
+        correcta = "Relacionar una causa observable con un efecto que pueda comprobarse."
+        distractores = [
+            "Afirmar una causa sin describir ningún cambio observable.",
+            "Confundir una coincidencia con una explicación comprobada.",
+        ]
+    return [correcta, *distractores], correcta
+
+
+def es_cyt_practico_enunciado(problema):
+    """Detecta los problemas numéricos de biología, ambiente, materia y salud."""
+    return any(
+        frase in problema
+        for frase in (
+            "muestra tiene", "se disuelven", "familia consume", "se recolectan",
+            "se registran", "requiere", "tratamiento A produce", "se necesitan",
+        )
+    )
+
+
+def opciones_cyt_practica(problema):
+    """Calcula alternativas concretas para los casos prácticos de CIT."""
+    densidad = re.search(r"muestra tiene (\d+) g y ocupa (\d+) cm³", problema)
+    concentracion = re.search(r"disuelven (\d+) g de sustancia en (\d+) mL", problema)
+    agua = re.search(r"familia consume (\d+) L.*?reduce (\d+) L", problema)
+    residuos = re.search(r"recolectan (\d+) kg.*?reciclan (\d+) kg", problema)
+    organismos = re.search(r"registran (\d+) organismos.*?y (\d+) sin ella", problema)
+    cuidado = re.search(r"requiere (\d+) mL por.*?durante (\d+) días", problema)
+    tratamientos = re.search(r"tratamiento A produce (\d+).*?tratamiento B (\d+)", problema)
+    prototipo = re.search(r"necesitan (\d+) piezas y.*?cuesta S/ (\d+)", problema)
+    if densidad:
+        masa, volumen = map(float, densidad.groups())
+        resultado, unidad = masa / volumen, "g/cm³"
+    elif concentracion:
+        soluto, volumen = map(float, concentracion.groups())
+        resultado, unidad = soluto / volumen, "g/mL"
+    elif agua:
+        consumo, ahorro = map(float, agua.groups())
+        resultado, unidad = consumo - ahorro, "L"
+    elif residuos:
+        recolectados, reciclados = map(float, residuos.groups())
+        resultado, unidad = recolectados - reciclados, "kg"
+    elif organismos:
+        primer_grupo, segundo_grupo = map(float, organismos.groups())
+        resultado, unidad = primer_grupo + segundo_grupo, "organismos"
+    elif cuidado:
+        dosis, dias = map(float, cuidado.groups())
+        resultado, unidad = dosis * dias, "mL"
+    elif tratamientos:
+        resultado, unidad = abs(float(tratamientos.group(1)) - float(tratamientos.group(2))), "unidades"
+    elif prototipo:
+        piezas, precio = map(float, prototipo.groups())
+        resultado, unidad = piezas * precio, "S/"
+    else:
+        raise ValueError("Caso de CIT sin datos reconocibles")
+    resultado = formatear_numero(resultado)
+    valores = [resultado, resultado + 1, resultado - 1, resultado + 2, resultado - 2]
+    correcta = f"{resultado:g} {unidad}"
+    return [f"{valor:g} {unidad}" for valor in valores], correcta
+
+
+def es_tema_fisica_enunciado(problema):
+    """Detecta los enunciados numéricos de Física generados por el banco."""
+    return any(
+        frase in problema
+        for frase in ("bicicleta recorre", "herramienta desde", "carrito de laboratorio", "caja del laboratorio", "frecuencia es")
+    )
+
+
+def opciones_fisica(problema):
+    """Calcula cinco alternativas numéricas para cada situación física."""
+    velocidad = re.search(r"bicicleta recorre (\d+) m en (\d+) s", problema)
+    caida = re.search(r"herramienta desde (\d+) m", problema)
+    fuerza = re.search(r"carrito de laboratorio de (\d+) kg.*?aceleración constante de (\d+) m/s²", problema)
+    trabajo = re.search(r"fuerza horizontal de (\d+) N a lo largo de (\d+) m", problema)
+    onda = re.search(r"frecuencia es (\d+) Hz y la longitud de onda (\d+) m", problema)
+    if velocidad:
+        distancia, tiempo = map(float, velocidad.groups())
+        resultado, unidad = distancia / tiempo, "m/s"
+    elif caida:
+        altura = float(caida.group(1))
+        resultado, unidad = math.sqrt(altura / 5), "s"
+    elif fuerza:
+        masa, aceleracion = map(float, fuerza.groups())
+        resultado, unidad = masa * aceleracion, "N"
+    elif trabajo:
+        fuerza_aplicada, distancia = map(float, trabajo.groups())
+        resultado, unidad = fuerza_aplicada * distancia, "J"
+    elif onda:
+        frecuencia, longitud = map(float, onda.groups())
+        resultado, unidad = frecuencia * longitud, "m/s"
+    else:
+        raise ValueError("Enunciado de Física sin datos numéricos reconocibles")
+    resultado = formatear_numero(resultado)
+    valores = [resultado, resultado + 1, resultado - 1, resultado + 2, resultado - 2]
+    correcta = f"{resultado:g} {unidad}"
+    opciones = [f"{valor:g} {unidad}" for valor in valores]
+    return opciones, correcta
+
+
+def formatear_numero(numero):
+    """Evita ceros decimales innecesarios en los resultados mostrados."""
+    return int(numero) if float(numero).is_integer() else round(numero, 2)
+
+
+def opciones_sociales(problema):
+    """Crea alternativas vinculadas con fuentes, territorio, procesos y ciudadanía."""
+    if "Analiza una fuente" in problema:
+        correcta = "Identificar autor, fecha, propósito y perspectiva antes de interpretarla."
+        distractores = [
+            "Aceptar la fuente sin revisar quién la produjo ni cuándo.",
+            "Usar solo una opinión actual y omitir la información de la fuente.",
+        ]
+    elif "Ubica un hecho" in problema:
+        correcta = "Precisar cuándo ocurrió, dónde ocurrió y qué contexto social lo rodeó."
+        distractores = [
+            "Mencionar solo el lugar y suponer el resto de la información.",
+            "Cambiar el territorio para que coincida con una opinión personal.",
+        ]
+    elif "causas y dos consecuencias" in problema:
+        correcta = "Distinguir dos factores que originan el proceso y dos efectos posteriores."
+        distractores = [
+            "Enumerar cuatro fechas sin explicar relaciones de causa y efecto.",
+            "Presentar una opinión como consecuencia sin relacionarla con el proceso.",
+        ]
+    elif "Compara" in problema:
+        correcta = "Comparar pasado y presente con un cambio verificable y una evidencia concreta."
+        distractores = [
+            "Decir que todo cambió sin indicar una evidencia para sostenerlo.",
+            "Describir solo el presente y no establecer ninguna comparación.",
+        ]
+    else:
+        correcta = "Proponer una decisión considerando derechos, deberes, contexto y consecuencias."
+        distractores = [
+            "Elegir la opción más conveniente para una persona e ignorar a la comunidad.",
+            "Tomar una decisión sin revisar normas ni posibles consecuencias.",
+        ]
+    return [correcta, *distractores], correcta
+
+
+def opciones_matematica(problema, indice):
+    """Calcula respuestas directas para los problemas numéricos generados."""
+    compra_descuento = re.search(
+        r"compra (\d+) cajas con (\d+) unidades cada una a S/ (\d+) por unidad y recibe un descuento del (\d+) %",
+        problema,
+    )
+    area_zona = re.search(
+        r"terreno rectangular de (\d+) m de largo y (\d+) m de ancho se divide en (\d+) zonas iguales",
+        problema,
+    )
+    ecuacion = re.search(
+        r"(\d+) veces un número, aumentado en (\d+), es igual a (\d+)",
+        problema,
+    )
+    proporcion_inversa = re.search(
+        r"(\d+) personas terminan un proyecto en (\d+) horas.*?trabajan (\d+) personas",
+        problema,
+    )
+    reparto = re.search(
+        r"cantidad total de (\d+) respuestas se reparte en la razón (\d+):(\d+):1",
+        problema,
+    )
+    suma = re.search(r"Calcula:?(?:\s+)(-?\d+) \+ \((-?\d+)\)", problema)
+    resta = re.search(r"Calcula: \((-?\d+)\) - \((-?\d+)\)", problema)
+    multiplicacion = re.search(r"Calcula: \((-?\d+)\) × (\d+)", problema)
+    temperatura = re.search(r"temperatura de (-?\d+) °C (aumenta|baja) (\d+)", problema)
+    ascensor = re.search(r"piso (-?\d+) y (sube|baja) (\d+) pisos", problema)
+    if compra_descuento:
+        cajas, unidades, precio, descuento = map(int, compra_descuento.groups())
+        resultado = cajas * unidades * precio * (100 - descuento) / 100
+    elif area_zona:
+        largo, ancho, zonas = map(int, area_zona.groups())
+        resultado = largo * ancho / zonas
+    elif ecuacion:
+        coeficiente, termino, total = map(int, ecuacion.groups())
+        resultado = (total - termino) / coeficiente
+    elif proporcion_inversa:
+        personas, horas, nuevas_personas = map(int, proporcion_inversa.groups())
+        resultado = personas * horas / nuevas_personas
+    elif reparto:
+        total, parte_a, parte_b = map(int, reparto.groups())
+        resultado = total * parte_a / (parte_a + parte_b + 1)
+    elif suma:
+        resultado = int(suma.group(1)) + int(suma.group(2))
+    elif resta:
+        resultado = int(resta.group(1)) - int(resta.group(2))
+    elif multiplicacion:
+        resultado = int(multiplicacion.group(1)) * int(multiplicacion.group(2))
+    elif temperatura:
+        valor, operacion, cambio = temperatura.groups()
+        resultado = int(valor) + (int(cambio) if operacion == "aumenta" else -int(cambio))
+    elif ascensor:
+        valor, operacion, cambio = ascensor.groups()
+        resultado = int(valor) + (int(cambio) if operacion == "sube" else -int(cambio))
+    else:
+        compra = re.search(r"vende (\d+) productos a S/ (\d+)", problema)
+        rectangulo = re.search(r"mide (\d+) cm por (\d+) cm", problema)
+        tanque = re.search(r"tiene (\d+) L y se usan (\d+) L", problema)
+        ahorro = re.search(r"ahorra S/ (\d+) durante (\d+) meses", problema)
+        if compra:
+            resultado = int(compra.group(1)) * int(compra.group(2))
+        elif rectangulo:
+            largo, ancho = map(int, rectangulo.groups())
+            resultado = 2 * (largo + ancho)
+        elif tanque:
+            resultado = int(tanque.group(1)) - int(tanque.group(2))
+        elif ahorro:
+            resultado = int(ahorro.group(1)) * int(ahorro.group(2))
+        else:
+            resultado = indice + indice + 3
+    if isinstance(resultado, float) and resultado.is_integer():
+        resultado = int(resultado)
+    correcta = f"Resultado: {resultado}"
+    return [correcta, f"Resultado: {resultado + 1}", f"Resultado: {resultado - 1}"], correcta
+
+
+def obtener_perfil_subtema(area, subtema):
+    """Devuelve qué estudiar y cómo practicar cada subtema concreto."""
+    tema = subtema.lower()
+    if area == "Matemática":
+        if any(palabra in tema for palabra in ("fracción", "fracciones", "cuarto", "medio")):
+            return (
+                "Una fracción representa partes iguales de un todo; el numerador indica cuántas partes se toman y el denominador en cuántas partes se divide el todo.",
+                "El entero, el numerador, el denominador, las fracciones equivalentes y la recta numérica.",
+                "Representa las partes, busca un denominador común cuando sea necesario, opera y simplifica el resultado.",
+                "Para calcular 1/2 + 1/4, se transforma 1/2 en 2/4 y luego 2/4 + 1/4 = 3/4.",
+                "Representa una cantidad dividida en partes iguales y calcula la fracción solicitada.",
+            )
+        if any(palabra in tema for palabra in ("ecuación", "álgebra", "expresión", "patrón", "sucesión")):
+            return (
+                "Una expresión algebraica relaciona números y letras; una ecuación afirma que dos expresiones tienen el mismo valor.",
+                "Variables, términos, coeficientes, operaciones, igualdad y solución.",
+                "Define la incógnita, traduce el enunciado a una expresión, despeja conservando la igualdad y comprueba sustituyendo.",
+                "Si 3x + 5 = 20, se resta 5: 3x = 15; se divide entre 3: x = 5.",
+                "Traduce una situación a una expresión o ecuación, despeja la incógnita y comprueba el resultado.",
+            )
+        if any(palabra in tema for palabra in ("geometr", "ángulo", "perímetro", "área", "polígono")):
+            return (
+                "La geometría estudia las figuras, sus medidas y las relaciones entre sus lados, ángulos y superficies.",
+                "Puntos, segmentos, lados, vértices, ángulos, perímetro, área y unidades.",
+                "Identifica la figura, selecciona la fórmula adecuada, reemplaza los datos y expresa el resultado con unidades cuadradas o lineales.",
+                "Un rectángulo de 8 m por 3 m tiene área 8 × 3 = 24 m² y perímetro 2 × (8 + 3) = 22 m.",
+                "Reconoce la figura, anota sus medidas y calcula el perímetro, área o ángulo pedido.",
+            )
+        return (
+            f"{subtema} estudia relaciones entre cantidades y procedimientos para resolver situaciones numéricas.",
+            "Datos, magnitudes, operaciones, relaciones, representación y unidad de respuesta.",
+            "Lee los datos, identifica lo que se pregunta, plantea la operación, calcula y verifica si el resultado es razonable.",
+            "Si una situación reúne 7 objetos y después añade 5, se plantea 7 + 5 = 12 objetos.",
+            f"Extrae los datos de una situación de {subtema}, plantea la operación y escribe el resultado con su unidad.",
+        )
+    if area == "Comunicación":
+        if any(palabra in tema for palabra in ("argument", "tesis", "opinión", "debate", "evidencia", "falacia")):
+            return (
+                f"{subtema} enseña a construir o evaluar una postura mediante razones claras y evidencias relacionadas.",
+                "Tema, tesis, razones, evidencias, ejemplos, contraargumentos y conclusión.",
+                "Identifica la afirmación central, separa hechos de opiniones, verifica la evidencia y comprueba si la conclusión se deriva de las razones.",
+                "Una tesis sobre reciclar se sostiene mejor si incluye el dato medido de residuos y explica cómo ese dato apoya la propuesta.",
+                f"Lee un texto sobre {subtema}, identifica su tesis y selecciona la evidencia que la respalda.",
+            )
+        if any(palabra in tema for palabra in ("literatura", "cuento", "narrativa", "poesía", "mito", "leyenda", "personaje")):
+            return (
+                f"{subtema} estudia cómo se construyen los textos literarios y cómo sus recursos producen significado.",
+                "Narrador, personajes, ambiente, conflicto, tiempo, acciones, imágenes y recursos literarios.",
+                "Lee el texto, ubica quién narra, reconoce las acciones y relaciona los recursos con el conflicto o tema central.",
+                "Si un personaje decide regresar para reparar un puente, esa acción modifica el conflicto y muestra su evolución.",
+                f"Lee un fragmento de {subtema}, identifica sus elementos y explica qué efecto produce uno de ellos.",
+            )
+        return (
+            f"{subtema} desarrolla habilidades para comprender, organizar y producir mensajes adecuados a una situación comunicativa.",
+            "Emisor, destinatario, propósito, mensaje, ideas principales, detalles, conectores y registro.",
+            "Reconoce el contexto, localiza la información importante, relaciona las ideas y responde usando evidencia del texto.",
+            "En un aviso, el horario es información explícita y la instrucción indica qué debe hacer el destinatario.",
+            f"Analiza un mensaje sobre {subtema}, identifica su propósito y justifica la respuesta con una frase del texto.",
+        )
+    if area == "Ciencia, Tecnología y Ambiente (CIT)":
+        if es_tema_fisica(subtema):
+            return (
+                f"{subtema} estudia cómo se comportan los cuerpos, la energía o las ondas mediante magnitudes medibles.",
+                "Magnitudes, unidades, datos, fórmula, variables, procedimiento y resultado.",
+                "Identifica los datos, elige la relación física, reemplaza valores con unidades y comprueba si el resultado tiene sentido.",
+                "Si un cuerpo recorre 40 m en 5 s, su velocidad media es v = d/t = 40/5 = 8 m/s.",
+                f"Extrae los datos de un caso de {subtema}, plantea la fórmula y calcula la magnitud solicitada.",
+            )
+        return (
+            f"{subtema} explica un fenómeno natural o una solución tecnológica a partir de observaciones y evidencias.",
+            "Fenómeno, pregunta, variables, procedimiento, datos, evidencias, explicación y conclusión.",
+            "Plantea una pregunta, cambia o compara una variable, registra datos y formula una conclusión que pueda comprobarse.",
+            "Para estudiar una planta, se comparan dos muestras iguales y se modifica solo la cantidad de luz para observar su crecimiento.",
+            f"Diseña una observación o prueba sobre {subtema}, registra un dato y explica qué conclusión permite obtener.",
+        )
+    return (
+        f"{subtema} permite analizar cómo se organizan las sociedades y cómo cambian sus relaciones en el tiempo y el espacio.",
+        "Actores, hechos, tiempo, territorio, fuentes, causas, consecuencias y perspectivas.",
+        "Ubica el contexto, identifica a los actores, contrasta una fuente y relaciona las causas con sus consecuencias.",
+        "Para explicar una migración se relacionan las oportunidades de empleo, el territorio de origen y el crecimiento de la ciudad receptora.",
+        f"Analiza un caso de {subtema}, ubica su contexto, identifica sus actores y sustenta una causa o consecuencia con una fuente.",
+    )
+
+
+def adaptar_ejercicios_subtema(ejercicios, area, subtema):
+    """Añade una consigna de práctica coherente con el subtema."""
+    practica = obtener_perfil_subtema(area, subtema)[4]
+    return [
+        f"{ejercicio} Tema aplicado: {subtema}. {practica}"
+        for ejercicio in ejercicios
+    ]
+
+
+def construir_teoria_subtema(subtema, area, etapa):
+    """Construye una explicación tipo libro con concepto, partes, método y ejemplo."""
+    introduccion, partes, estructura, ejemplo, _ = obtener_perfil_subtema(area, subtema)
+    return (
+        f"**¿Qué es este subtema?**\n{introduccion}\n\n"
+        f"**¿De qué trata?**\nEste subtema desarrolla el concepto de {subtema} y explica cómo se reconoce y se aplica en situaciones concretas de {area}.\n\n"
+        f"**Partes principales**\nEste contenido se compone de {partes}. Comprender cada elemento permite explicar el subtema y aplicarlo correctamente.\n\n"
+        f"**¿Cómo se resuelve o se estudia?**\n{estructura}.\n\n"
+        f"**Ejemplo explicado**\n{ejemplo}"
+    )
+
+
+def obtener_imagen_subtema(area, subtema):
+    """Construye una imagen estable usando el área y subtema exactos."""
+    consulta = quote(f"{area} {subtema}", safe="")
+    identificador = int(md5(f"{area}:{subtema}".encode("utf-8")).hexdigest()[:8], 16)
+    return f"https://loremflickr.com/1200/700/{consulta}?lock={identificador}"
+
+
+def mostrar_subtema(subtema, area, etapa, clave):
+    """Presenta conocimiento, ejercicios y examen final para un subtema."""
+    guia = GUIAS_AREA[area]
+    teoria_subtema = construir_teoria_subtema(subtema, area, etapa)
+    st.markdown(f"##### Subtema: {subtema}")
+    clase, video, solucionario, banco_preguntas, evaluacion = st.tabs(
+        ["📘 Clase", "▶️ Video", "🧩 Solucionario", "📚 Banco de preguntas", "📝 Examen"]
+    )
+    with clase:
+        st.markdown("**Teoría detallada**")
+        st.image(
+            obtener_imagen_subtema(area, subtema),
+            caption=f"Ejemplo visual de {subtema}",
+            use_container_width=True,
+        )
+        st.markdown("**Definición**")
+        st.write(teoria_subtema)
+        st.markdown("**Ruta guiada del contenido**")
+        st.write(f"➊ Reconoce el concepto **{subtema}** y sus palabras clave.")
+        st.write("➋ Separa los datos, elementos o evidencias que aparecen en el caso.")
+        st.write("➌ Relaciona esos elementos con la definición y sus propiedades.")
+        st.write("➍ Formula una conclusión y verifica que sea coherente con el concepto.")
+        st.markdown("**Elementos y aplicación**")
+        st.write(
+            f"En {etapa}, **{subtema}** aparece cuando es necesario {EJEMPLOS_AREA[area]}. "
+            "Sus elementos se interpretan según la definición y sus propiedades "
+            "permiten comprobar la conclusión. "
+            f"En {area}, esto se concreta en {guia['teoria'].lower()}"
+        )
+        if subtema == "Números enteros":
+            st.markdown("**Principios y fórmulas**")
+            st.latex(r"\mathbb{Z} = \{..., -2, -1, 0, 1, 2, ...\}")
+            st.latex(r"a - b = a + (-b) \qquad |a| = \text{distancia de } a \text{ al cero}")
+            st.write("Ejemplo 1: (-7) + 3 = -(7 - 3) = -4, porque los signos son distintos y 7 es mayor que 3.")
+            st.write("Ejemplo 2: (-4) - (-9) = (-4) + 9 = 5, porque restar -9 equivale a sumar 9.")
+            st.write("Ejemplo 3: (-6) × (-2) = 12, porque dos signos negativos producen un resultado positivo.")
+        st.markdown("**Idea clave**")
+        st.write(
+            f"La idea central de **{subtema}** se conserva aunque cambien los datos, "
+            "los materiales o el contexto del problema."
+        )
+        st.markdown("**Ejercicios de aplicación**")
+        if subtema == "Números enteros":
+            st.write("1. Ordena de menor a mayor: -8, 3, 0, -2, 6.")
+            st.write("2. Calcula: (-12) + 7, 9 - (-4) y (-5) - 8.")
+            st.write("3. Resuelve: una temperatura de -3 °C aumenta 11 °C. ¿Cuál es la temperatura final?")
+            st.write("4. Calcula y justifica el signo: (-6) × 4, (-24) ÷ (-3) y 18 ÷ (-6).")
+        else:
+            for indice, ejercicio in enumerate(guia["ejercicios"], start=1):
+                st.write(f"{indice}. {ejercicio} Tema: **{subtema}**.")
+        st.markdown("**Ejemplo práctico**")
+        st.write(
+            f"Ejemplo resuelto: en {etapa}, {guia['ejemplo']} "
+            f"El caso se relaciona con **{subtema}** porque usa sus elementos y propiedades."
+        )
+        st.markdown("**Caso resuelto**")
+        st.write(
+            f"Caso: una situación de {area} contiene información sobre **{subtema}**. "
+            "Identificación: se localizan los datos relevantes. Aplicación: se "
+            "relacionan con la definición. Resultado: se expresa una conclusión "
+            "completa y se comprueba con las propiedades del concepto."
+        )
+    with video:
+        st.markdown(f"**Video conceptual: {subtema}**")
+        st.info(
+            f"Recurso visual sugerido para {etapa}: representa **{subtema}** con "
+            f"imágenes, palabras clave y un caso de {area}."
+        )
+        st.progress(0, text="Video pendiente de incorporar")
+    with solucionario:
+        st.markdown("**Solucionario de la práctica**")
+        if subtema == "Números enteros":
+            st.write("1. Orden: -8 < -2 < 0 < 3 < 6.")
+            st.write("2. Operaciones: (-12) + 7 = -5; 9 - (-4) = 13; (-5) - 8 = -13.")
+            st.write("3. Temperatura: -3 °C + 11 °C = 8 °C.")
+            st.write("4. Productos y cocientes: (-6) × 4 = -24; (-24) ÷ (-3) = 8; 18 ÷ (-6) = -3.")
+        else:
+            for indice, solucion in enumerate(guia["soluciones"], start=1):
+                st.write(f"{indice}. {solucion}")
+    with banco_preguntas:
+        st.markdown(f"**100 preguntas de práctica sobre {subtema}**")
+        st.write("Estas preguntas se generan exclusivamente para el subtema seleccionado.")
+        banco = generar_banco_ejercicios(area, subtema, etapa, st.session_state.nivel)
+        for indice, ejercicio in enumerate(banco, start=1):
+            st.write(f"{indice}. {ejercicio}")
+    with evaluacion:
+        st.markdown(f"**Examen final del subtema: {subtema}**")
+        st.write("Selecciona una opción en cada problema. Cada examen combina problemas diferentes del subtema.")
+        clave_examen = f"examen_{clave}"
+        if st.button("Generar otro examen", key=f"nuevo_{clave}"):
+            st.session_state.pop(clave_examen, None)
+            st.session_state[f"{clave_examen}_version"] = (
+                st.session_state.get(f"{clave_examen}_version", 0) + 1
+            )
+            st.rerun()
+        banco_examen = obtener_banco_examen(
+            clave, area, subtema, etapa, st.session_state.nivel
+        )
+        niveles = [("🟢 Básico", banco_examen[:15]), ("🟡 Intermedio", banco_examen[15:35]), ("🔴 Avanzado", banco_examen[35:])]
+        with st.form(key=f"formulario_examen_{clave}"):
+            respuestas_banco = []
+            correctas_banco = []
+            numero_problema = 1
+            for nombre_nivel, problemas in niveles:
+                st.markdown(f"**{nombre_nivel}**")
+                for problema, opciones, correcta in problemas:
+                    respuestas_banco.append(
+                        st.radio(
+                            f"Problema {numero_problema}: {problema}",
+                            opciones,
+                            index=None,
+                            key=f"banco_examen_{numero_problema}_{clave}_{obtener_version_examen(clave)}",
+                        )
+                    )
+                    correctas_banco.append(correcta)
+                    numero_problema += 1
+            enviar_examen = st.form_submit_button("Calificar las 50 preguntas")
+        if enviar_examen:
+            puntaje = 0
+            for respuesta, correcta in zip(respuestas_banco, correctas_banco):
+                if respuesta == correcta:
+                    puntaje += 1
+                    st.session_state.racha_respuestas += 1
+                else:
+                    st.session_state.racha_respuestas = 0
+
+            promedio_aprobatorio = len(respuestas_banco) / 2
+            aprobado = puntaje >= promedio_aprobatorio
+            puntos_tema = 50
+            if aprobado and clave not in st.session_state.temas_completados:
+                st.session_state.puntos += puntos_tema
+                st.session_state.temas_completados.add(clave)
+                st.session_state.racha_temas += 1
+                mensaje_puntos = (
+                    f" Ganaste +{puntos_tema} puntos por terminar el tema. "
+                    f"Racha de temas: {st.session_state.racha_temas}."
+                )
+            elif not aprobado:
+                mensaje_puntos = (
+                    f" No ganaste puntos: necesitas al menos {promedio_aprobatorio:g} "
+                    "respuestas correctas para aprobar el tema."
+                )
+            else:
+                mensaje_puntos = " Este tema ya había otorgado sus puntos."
+            st.success(
+                f"Resultado del examen: {puntaje} de {len(respuestas_banco)} respuestas correctas."
+                f" Racha de respuestas: {st.session_state.racha_respuestas}.{mensaje_puntos}"
+            )
+
+CONTENIDOS = {
+    "Inicial": {
+        "Tres años": {
+            "Matemática": {"Exploro cantidades": ["Muchos y pocos", "Uno y ninguno"], "Descubro formas": ["Círculo, cuadrado y triángulo", "Tamaños y posiciones"]},
+            "Comunicación": {"Me comunico": ["Mi nombre y mis emociones", "Sonidos de mi entorno"], "Escucho historias": ["Personajes y acciones", "Cuentos con imágenes"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Conozco mi cuerpo": ["Partes principales", "Hábitos de higiene"], "Observo la naturaleza": ["Animales cercanos", "Día, noche y clima"]},
+            "Ciencias Sociales": {"Soy parte de una familia": ["Mi hogar", "Las personas que me cuidan"], "Convivo con otros": ["Compartir materiales", "Acuerdos del aula"]},
+        },
+        "Cuatro años": {
+            "Matemática": {"Cuento y comparo": ["Números del 1 al 5", "Ordeno colecciones"], "Relaciono formas": ["Figuras en objetos", "Patrones de colores"]},
+            "Comunicación": {"Juego con palabras": ["Rimas y adivinanzas", "Sílabas iniciales"], "Narro experiencias": ["Inicio, nudo y final", "Describo personajes"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Descubro mis sentidos": ["Vista, oído, tacto, gusto y olfato", "Experimentos sensoriales"], "Cuido seres vivos": ["Partes de una planta", "Necesidades de los animales"]},
+            "Ciencias Sociales": {"Conozco mi comunidad": ["Familia, escuela y barrio", "Oficios cercanos"], "Practico normas": ["Turnos y responsabilidades", "Resolver conflictos hablando"]},
+        },
+        "Cinco años": {
+            "Matemática": {"Resuelvo situaciones": ["Números del 1 al 10", "Sumas con objetos"], "Mido y ubico": ["Largo, corto, pesado y liviano", "Orientación espacial"]},
+            "Comunicación": {"Me preparo para leer": ["Vocales y sonido inicial", "Escritura del nombre"], "Creo textos": ["Secuencia de imágenes", "Mensaje y propósito"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Cuido mi salud": ["Alimentación saludable", "Movimiento y descanso"], "Protejo mi ambiente": ["El agua y su cuidado", "Reducir, reutilizar y reciclar"]},
+            "Ciencias Sociales": {"Participo responsablemente": ["Mis derechos y deberes", "Responsabilidades en casa"], "Valoro mi identidad": ["Costumbres familiares", "Celebraciones de mi comunidad"]},
+        },
+    },
+    "Primaria": {
+        "1° grado": {
+            "Matemática": {"Número y cantidad": ["Números hasta 20", "Sumas y restas concretas"], "Forma y ubicación": ["Figuras planas", "Posiciones y recorridos"]},
+            "Comunicación": {"Lectura inicial": ["Conciencia fonológica", "Comprensión de oraciones"], "Escritura funcional": ["Palabras y frases", "Tarjetas y mensajes"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Seres vivos": ["Características de animales y plantas", "Necesidades básicas"], "Materia y ambiente": ["Materiales de uso diario", "Cuidado del agua"]},
+            "Ciencias Sociales": {"Mi historia": ["Mi familia y mis cambios", "Línea de tiempo personal"], "Mi comunidad": ["Normas y autoridades", "Espacios de convivencia"]},
+        },
+        "2° grado": {
+            "Matemática": {"Números hasta 100": ["Valor posicional", "Suma y resta con reagrupación"], "Problemas aditivos": ["Datos y pregunta", "Estrategias de solución"]},
+            "Comunicación": {"Comprendo textos": ["Ideas principales", "Secuencia de hechos"], "Escribo textos breves": ["Oraciones conectadas", "Revisión de mayúsculas y punto"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Cuerpo y salud": ["Sistemas básicos del cuerpo", "Alimentación equilibrada"], "Ecosistemas cercanos": ["Relaciones entre seres vivos", "Residuos y reciclaje"]},
+            "Ciencias Sociales": {"Tiempo e historia": ["Antes y ahora", "Fuentes familiares"], "Territorio": ["Paisaje natural y cultural", "Puntos de referencia"]},
+        },
+        "3° grado": {
+            "Matemática": {"Multiplicación y división": ["Arreglos y tablas", "Reparto equitativo"], "Fracciones y medida": ["Medios y cuartos", "Perímetro con unidades"]},
+            "Comunicación": {"Comprensión literal e inferencial": ["Información explícita", "Deducciones sencillas"], "Textos narrativos": ["Estructura del cuento", "Descripción de personajes"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Materia y energía": ["Estados de la materia", "Luz, sonido y calor"], "Indagación": ["Pregunta y predicción", "Registro de observaciones"]},
+            "Ciencias Sociales": {"Historia del Perú": ["Pueblos originarios", "Fuentes históricas"], "Ciudadanía": ["Derechos de la niñez", "Participación en el aula"]},
+        },
+        "4° grado": {
+            "Matemática": {"Números naturales": ["Operaciones combinadas", "Múltiplos y divisores"], "Geometría": ["Ángulos y polígonos", "Área de figuras"]},
+            "Comunicación": {"Lectura crítica inicial": ["Propósito del autor", "Opinión y evidencia"], "Producción textual": ["Párrafos cohesionados", "Textos instructivos"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Sistemas naturales": ["Ecosistemas y cadenas alimentarias", "Adaptaciones"], "Tierra y universo": ["Ciclo del agua", "Movimientos de la Tierra"]},
+            "Ciencias Sociales": {"Historia y diversidad": ["Culturas prehispánicas", "Patrimonio cultural"], "Geografía del Perú": ["Regiones naturales", "Uso responsable del territorio"]},
+        },
+        "5° grado": {
+            "Matemática": {"Fracciones y decimales": ["Equivalencias", "Operaciones en situaciones reales"], "Proporcionalidad": ["Razones", "Porcentajes cotidianos"]},
+            "Comunicación": {"Analizo información": ["Fuentes y argumentos", "Inferencias complejas"], "Escribo para informar": ["Planificación y borrador", "Conectores y edición"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Cuerpo y salud": ["Sistemas digestivo y circulatorio", "Prevención y estilos de vida"], "Ambiente y tecnología": ["Cambio climático", "Soluciones tecnológicas sostenibles"]},
+            "Ciencias Sociales": {"República y ciudadanía": ["Proceso de independencia", "Instituciones democráticas"], "Economía familiar": ["Necesidades y recursos", "Consumo responsable"]},
+        },
+        "6° grado": {
+            "Matemática": {"Pensamiento algebraico": ["Patrones y expresiones", "Ecuaciones sencillas"], "Datos y probabilidad": ["Tablas y gráficos", "Probabilidad experimental"]},
+            "Comunicación": {"Interpretación crítica": ["Tesis y argumentos", "Comparación de fuentes"], "Proyecto de comunicación": ["Investigación y guion", "Presentación oral"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Indagación científica": ["Variables y diseño experimental", "Conclusiones con evidencia"], "Sistemas de la Tierra": ["Ciclos naturales", "Impacto humano y mitigación"]},
+            "Ciencias Sociales": {"Historia contemporánea": ["Cambios políticos y sociales", "Perú en el siglo XX"], "Ciudadanía global": ["Derechos humanos", "Problemas públicos y propuestas"]},
+        },
+    },
+    "Secundaria": {
+        "1° grado": {
+            "Matemática": {"Aritmética": ["Números enteros", "Fracciones y decimales"], "Álgebra inicial": ["Patrones", "Expresiones algebraicas"]},
+            "Comunicación": {"Comprensión": ["Estrategias de lectura", "Idea central y secundarias"], "Literatura": ["Géneros literarios", "Mito y leyenda"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Biología": ["Método científico", "Célula y niveles de organización"], "Ambiente": ["Ecosistemas", "Biodiversidad local"]},
+            "Ciencias Sociales": {"Historia": ["Primeras sociedades", "Civilizaciones antiguas"], "Geografía": ["Representación cartográfica", "Relieve y clima"]},
+        },
+        "2° grado": {
+            "Matemática": {"Álgebra": ["Ecuaciones lineales", "Proporcionalidad"], "Geometría": ["Ángulos y triángulos", "Perímetro y área"]},
+            "Comunicación": {"Argumentación": ["Hechos y opiniones", "Razones y evidencias"], "Redacción": ["Coherencia y cohesión", "Texto expositivo"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Materia": ["Propiedades y cambios", "Mezclas y métodos de separación"], "Energía": ["Formas de energía", "Transformaciones y uso eficiente"]},
+            "Ciencias Sociales": {"Historia": ["Edad Media", "Formación de sociedades modernas"], "Ciudadanía": ["Estado y nación", "Diversidad cultural"]},
+        },
+        "3° grado": {
+            "Matemática": {"Funciones": ["Relaciones y plano cartesiano", "Función lineal"], "Geometría": ["Semejanza", "Teorema de Pitágoras"]},
+            "Comunicación": {"Lectura crítica": ["Propósito y perspectiva", "Validez de fuentes"], "Literatura": ["Narrativa peruana", "Análisis de recursos literarios"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Química": ["Estructura atómica", "Tabla periódica"], "Biología": ["Genética básica", "Reproducción y herencia"]},
+            "Ciencias Sociales": {"Historia del Perú": ["Virreinato y sociedad", "Independencia"], "Economía": ["Mercado y agentes económicos", "Presupuesto público"]},
+        },
+        "4° grado": {
+            "Matemática": {"Álgebra": ["Sistemas de ecuaciones", "Inecuaciones"], "Estadística": ["Medidas de tendencia central", "Interpretación de gráficos"]},
+            "Comunicación": {"Discurso y ciudadanía": ["Falacias y sesgos", "Debate informado"], "Escritura académica": ["Citas y paráfrasis", "Ensayo breve"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Física": ["Movimiento y fuerza", "Trabajo y energía"], "Química": ["Enlace químico", "Reacciones químicas"]},
+            "Ciencias Sociales": {"Historia contemporánea": ["Revoluciones y guerras mundiales", "Globalización"], "Geografía humana": ["Población y migración", "Urbanización"]},
+        },
+        "5° grado": {
+            "Matemática": {"Funciones y modelación": ["Funciones cuadráticas", "Sucesiones"], "Probabilidad": ["Probabilidad condicional", "Distribuciones y análisis"]},
+            "Comunicación": {"Investigación": ["Pregunta y marco teórico", "Presentación de resultados"], "Literatura universal": ["Movimientos literarios", "Interpretación comparada"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Ciencia integrada": ["Biología molecular", "Electromagnetismo y química orgánica"], "Salud y ambiente": ["Octógonos y alimentación saludable", "Cambio climático y sostenibilidad"]},
+            "Ciencias Sociales": {"Perú republicano": ["Procesos políticos recientes", "Memoria histórica"], "Ciudadanía y ética": ["Democracia y derechos", "Proyecto de participación ciudadana"]},
+        },
+    },
+    "Preuniversitario": {
+        "Ciclo preuniversitario": {
+            "Matemática": {"Álgebra": ["Polinomios y factorización", "Ecuaciones e inecuaciones"], "Geometría y trigonometría": ["Geometría analítica", "Identidades y resolución de triángulos"]},
+            "Comunicación": {"Razonamiento verbal": ["Analogías y relaciones", "Conectores y eliminación de oraciones"], "Comprensión lectora": ["Niveles de lectura", "Inferencia y evaluación de argumentos"]},
+            "Ciencia, Tecnología y Ambiente (CIT)": {"Física": ["Cinemática y dinámica", "Electricidad y ondas"], "Química y biología": ["Estequiometría y soluciones", "Genética y ecología"]},
+            "Ciencias Sociales": {"Historia y ciudadanía": ["Procesos históricos del Perú", "Estado, democracia y derechos"], "Economía y geografía": ["Macroeconomía básica", "Territorio y desarrollo sostenible"]},
+        },
+    },
+}
+
+TEMAS_ADICIONALES = {
+    "Matemática": {
+        "Números y operaciones": ["Valor posicional", "Estimación y cálculo mental"],
+        "Geometría": ["Perímetro y área", "Ángulos y simetría"],
+        "Medida": ["Unidades de longitud", "Tiempo y conversiones"],
+        "Fracciones": ["Fracciones equivalentes", "Fracciones en situaciones reales"],
+        "Álgebra": ["Patrones numéricos", "Ecuaciones y desigualdades"],
+        "Datos y probabilidad": ["Tablas y gráficos", "Probabilidad en experimentos"],
+    },
+    "Comunicación": {
+        "Comprensión lectora": ["Información explícita", "Inferencias y conclusiones"],
+        "Producción escrita": ["Planificación de textos", "Revisión y edición"],
+        "Textos funcionales": ["Avisos e instrucciones", "Cartas y solicitudes"],
+        "Literatura": ["Poesía y recursos literarios", "Narrador y ambiente"],
+        "Argumentación": ["Tesis y argumentos", "Evidencias y contraargumentos"],
+        "Comunicación oral": ["Exposición organizada", "Debate y escucha activa"],
+    },
+    "Ciencia, Tecnología y Ambiente (CIT)": {
+        "Biología": ["Nutrición y salud", "Reproducción y herencia"],
+        "Ecología": ["Cadenas alimentarias", "Conservación de la biodiversidad"],
+        "Materia": ["Estados y propiedades", "Cambios físicos y químicos"],
+        "Física": ["Movimiento y medición", "Energía en la vida cotidiana"],
+        "Indagación científica": ["Preguntas y variables", "Análisis de resultados"],
+        "Tecnología": ["Diseño de prototipos", "Impacto de soluciones tecnológicas"],
+    },
+    "Ciencias Sociales": {
+        "Historia": ["Fuentes históricas", "Cambios y permanencias"],
+        "Geografía": ["Mapas y territorio", "Recursos naturales"],
+        "Ciudadanía": ["Derechos y deberes", "Participación democrática"],
+        "Economía": ["Necesidades y recursos", "Producción y consumo"],
+        "Identidad y diversidad": ["Culturas y tradiciones", "Convivencia intercultural"],
+        "Ambiente y sociedad": ["Riesgos y prevención", "Desarrollo sostenible"],
+    },
+}
+
+for datos_nivel in CONTENIDOS.values():
+    for contenidos_etapa in datos_nivel.values():
+        for area, temas_adicionales in TEMAS_ADICIONALES.items():
+            contenidos_etapa[area].update(temas_adicionales)
+
+
+SUBTEMAS_COMPLEMENTARIOS = {
+    "Matemática": [
+        "Conceptos fundamentales", "Representación gráfica", "Procedimientos básicos",
+        "Aplicación en situaciones reales", "Estrategias de resolución", "Errores frecuentes",
+        "Problemas de mayor dificultad", "Verificación de resultados",
+    ],
+    "Comunicación": [
+        "Conceptos y características", "Elementos del mensaje", "Propósito comunicativo",
+        "Información principal", "Recursos del lenguaje", "Organización del texto",
+        "Interpretación y análisis", "Producción de un texto",
+    ],
+    "Ciencia, Tecnología y Ambiente (CIT)": [
+        "Conceptos fundamentales", "Elementos del fenómeno", "Observación y descripción",
+        "Pregunta de investigación", "Variables y condiciones", "Registro de datos",
+        "Análisis de evidencias", "Aplicación en la vida cotidiana",
+    ],
+    "Ciencias Sociales": [
+        "Conceptos fundamentales", "Actores sociales", "Tiempo y espacio",
+        "Fuentes de información", "Causas del proceso", "Consecuencias y cambios",
+        "Diferentes perspectivas", "Relación con la actualidad",
+    ],
+}
+
+
+def completar_subtemas_por_tema():
+    """Garantiza diez subtemas relacionados con cada tema y cada área."""
+    for datos_nivel in CONTENIDOS.values():
+        for contenidos_etapa in datos_nivel.values():
+            for area, temas in contenidos_etapa.items():
+                complementarios = SUBTEMAS_COMPLEMENTARIOS[area]
+                for tema, subtemas in temas.items():
+                    indice = 0
+                    while len(subtemas) < 10:
+                        complemento = complementarios[indice % len(complementarios)]
+                        subtema = f"{complemento} de {tema}"
+                        if subtema not in subtemas:
+                            subtemas.append(subtema)
+                        indice += 1
+
+
+completar_subtemas_por_tema()
+
+
+TEMAS_PREMIUM = {
+    "Matemática": {
+        "Desafíos Premium": ["Modelación con funciones", "Optimización y problemas"],
+        "Razonamiento avanzado": ["Sucesiones y series", "Análisis combinatorio"],
+    },
+    "Comunicación": {
+        "Taller Premium de escritura": ["Ensayo argumentativo", "Edición académica"],
+        "Lectura avanzada": ["Análisis de fuentes", "Interpretación crítica"],
+    },
+    "Ciencia, Tecnología y Ambiente (CIT)": {
+        "Laboratorio Premium": ["Diseño experimental", "Modelos científicos"],
+        "Ciencia aplicada": ["Innovación sostenible", "Análisis de datos científicos"],
+    },
+    "Ciencias Sociales": {
+        "Análisis Premium": ["Investigación histórica", "Análisis geopolítico"],
+        "Proyecto ciudadano": ["Políticas públicas", "Debate de problemas sociales"],
+    },
+}
+
+
+def actualizar_temas_premium():
+    """Agrega temas Premium durante el acceso y los retira al vencer la prueba."""
+    for datos_nivel in CONTENIDOS.values():
+        for contenidos_etapa in datos_nivel.values():
+            for area, temas in TEMAS_PREMIUM.items():
+                if st.session_state.premium:
+                    contenidos_etapa[area].update(temas)
+                else:
+                    for tema in temas:
+                        contenidos_etapa[area].pop(tema, None)
+
+
+if (
+    st.session_state.premium
+    and not st.session_state.premium_pagado
+    and st.session_state.premium_expira
+    and datetime.fromisoformat(st.session_state.premium_expira) <= datetime.now()
+):
+    st.session_state.premium = False
+    st.session_state.premium_expira = None
+
+actualizar_temas_premium()
+completar_subtemas_por_tema()
+
+
+def obtener_progreso_nivel(nivel):
+    """Calcula el avance del nivel según los subtemas aprobados."""
+    total_subtemas = sum(
+        len(subtemas)
+        for contenidos_etapa in CONTENIDOS[nivel].values()
+        for subtemas_por_tema in contenidos_etapa.values()
+        for subtemas in subtemas_por_tema.values()
+    )
+    temas_aprobados = sum(
+        clave.startswith(f"{nivel}_") for clave in st.session_state.temas_completados
+    )
+    porcentaje = (temas_aprobados / total_subtemas * 100) if total_subtemas else 0
+    return temas_aprobados, total_subtemas, porcentaje
+
+
+if st.session_state.usuario_actual is None:
+    st.markdown(
+        '<div class="edukt-logo"><div class="edukt-logo__icon">📖✏️</div>'
+        '<div><div class="edukt-logo__name">eduKT</div>'
+        '<div class="edukt-logo__tagline">Tu espacio personal de aprendizaje</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    crear_tab, ingresar_tab = st.tabs(["Crear perfil", "Ingresar a mi cuenta"])
+    with crear_tab:
+        with st.form("formulario_crear_perfil"):
+            nombre = st.text_input("Nombre del perfil")
+            codigo = st.text_input("Código de acceso", type="password")
+            nivel_nuevo = st.selectbox(
+                "Nivel educativo",
+                ["Inicial", "Primaria", "Secundaria", "Preuniversitario"],
+            )
+            crear_perfil = st.form_submit_button("Crear mi perfil")
+        if crear_perfil:
+            usuario = nombre.strip()
+            if not usuario or not codigo:
+                st.error("Escribe un nombre y un código de acceso.")
+            elif usuario in st.session_state.perfiles:
+                st.error("Ese perfil ya existe. Ingresa desde la otra pestaña.")
+            else:
+                st.session_state.perfiles[usuario] = {
+                    "codigo": codigo,
+                    "puntos": 0,
+                    "nivel": nivel_nuevo,
+                    "premium": False,
+                    "premium_pagado": False,
+                    "premium_expira": None,
+                    "racha": 0,
+                    "racha_temas": 0,
+                    "racha_respuestas": 0,
+                    "temas_completados": set(),
+                }
+                cargar_perfil(usuario)
+                st.rerun()
+    with ingresar_tab:
+        if st.session_state.perfiles:
+            with st.form("formulario_ingresar_perfil"):
+                usuario = st.selectbox("Elige tu perfil", list(st.session_state.perfiles))
+                codigo = st.text_input("Código de acceso", type="password")
+                ingresar = st.form_submit_button("Ingresar")
+            if ingresar:
+                if codigo == st.session_state.perfiles[usuario]["codigo"]:
+                    cargar_perfil(usuario)
+                    st.rerun()
+                else:
+                    st.error("El código de acceso no coincide.")
+        else:
+            st.info("Primero crea un perfil para guardar tu progreso.")
+    st.stop()
+
+
+# PANTALLA INICIAL: SELECCION DE NIVEL
+if st.session_state.nivel is None:
+    st.markdown(
+        '<div class="edukt-logo"><div class="edukt-logo__icon">📖✏️</div>'
+        '<div><div class="edukt-logo__name">eduKT</div>'
+        '<div class="edukt-logo__tagline">Aprende · practica · avanza</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="zona-banner"><div class="zona-ruta">🏠 Inicio → 🎯 Elige tu ruta</div>'
+        '<strong>Zona de Estudio</strong><br>Selecciona un nivel para abrir tus contenidos.</div>',
+        unsafe_allow_html=True,
+    )
+    st.header("Selecciona tu nivel educativo")
+    nivel_seleccionado = st.radio(
+        "¿En qué nivel estás estudiando?",
+        ["Inicial", "Primaria", "Secundaria", "Preuniversitario"],
+        format_func=lambda nivel: f"🎓 {nivel}",
+    )
+
+    if st.button("Continuar"):
+        st.session_state.nivel = nivel_seleccionado
+        st.rerun()
+
+    st.stop()
+
+# CABECERA DE LA APP
+st.markdown(
+    '<div class="edukt-logo"><div class="edukt-logo__icon">📖✏️</div>'
+    '<div><div class="edukt-logo__name">eduKT</div>'
+    '<div class="edukt-logo__tagline">Aprende · practica · avanza</div></div></div>',
+    unsafe_allow_html=True,
+)
+col_perfil, col_pts = st.columns([2, 1])
+with col_perfil:
+    st.write(
+        f"👤 **Perfil:** {st.session_state.usuario_actual} · "
+        f"Nivel {st.session_state.nivel}"
+    )
+    if st.button("Cambiar nivel educativo", key="cambiar_nivel"):
+        st.session_state.nivel = None
+        st.rerun()
+    if st.button("Cerrar sesión", key="cerrar_sesion"):
+        guardar_perfil_actual()
+        st.session_state.usuario_actual = None
+        st.session_state.nivel = None
+        st.rerun()
+with col_pts:
+    st.subheader(f"🏆 {st.session_state.puntos} pts")
+    st.caption(f"🔥 Racha de temas: {st.session_state.racha_temas}")
+
+if st.session_state.premium:
+    if st.session_state.premium_pagado:
+        st.success("👑 Cuenta Premium activa: suscripción mensual de $3.33")
+    else:
+        fecha_expiracion = datetime.fromisoformat(st.session_state.premium_expira).strftime("%d/%m/%Y")
+        st.success(f"👑 Prueba Premium activa: temas adicionales hasta el {fecha_expiracion}")
+
+st.markdown("---")
+
+# BARRA DE NAVEGACIÓN SIMULADA
+menu = st.sidebar.radio(
+    "Navegación",
+    ["🏠 Inicio / Materias", "👑 Hazte Premium", "📊 Mi Progreso"],
+    key="menu_navegacion",
+)
+
+# PANTALLA 1: INICIO Y MATERIAS
+if menu == "🏠 Inicio / Materias":
+    st.markdown(
+        f'<div class="zona-banner"><div class="zona-ruta">🏠 Inicio → 📚 {st.session_state.nivel}</div>'
+        '<strong>Ruta de aprendizaje</strong><br>Avanza de la etapa al área y luego al tema.</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("### 🎯 Desafío del Día")
+    temas_aprobados, total_subtemas, progreso = obtener_progreso_nivel(
+        st.session_state.nivel
+    )
+    st.progress(progreso / 100)
+    st.write(
+        f"Avance del nivel: {progreso:.1f}% "
+        f"({temas_aprobados} de {total_subtemas} temas aprobados)."
+    )
+
+    st.markdown(f"### 📚 Contenidos de {st.session_state.nivel}")
+    contenidos_nivel = CONTENIDOS[st.session_state.nivel]
+    etapa = st.selectbox(
+        "Selecciona tu edad o grado",
+        list(contenidos_nivel),
+        format_func=lambda opcion: f"📍 {opcion}",
+    )
+    contenidos_etapa = contenidos_nivel[etapa]
+    area = st.selectbox(
+        "Selecciona un área o materia",
+        list(contenidos_etapa),
+        format_func=lambda opcion: f"🧠 {opcion}",
+    )
+
+    st.markdown(
+        f'<div class="zona-ficha">🧭 <strong>Ruta actual:</strong> '
+        f'{st.session_state.nivel} → {etapa} → {area}</div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("**Áreas disponibles**")
+    iconos_area = {
+        "Matemática": "🔢",
+        "Comunicación": "💬",
+        "Ciencia, Tecnología y Ambiente (CIT)": "🔬",
+        "Ciencias Sociales": "🌎",
+    }
+    columnas_area = st.columns(len(contenidos_etapa))
+    for columna, nombre_area in zip(columnas_area, contenidos_etapa):
+        with columna:
+            st.markdown(
+                f'<div class="zona-pildora">{iconos_area[nombre_area]}<br>{nombre_area}</div>',
+                unsafe_allow_html=True,
+            )
+
+    st.markdown(f"#### {area}")
+    st.caption(f"Lecciones disponibles para {etapa}")
+    for indice_tema, (tema, subtemas) in enumerate(contenidos_etapa[area].items(), start=1):
+        clave_tema = f"{st.session_state.nivel}_{etapa}_{area}_{indice_tema}"
+        with st.expander(f"Tema {indice_tema}: {tema}"):
+            st.markdown(f"**Ruta de aprendizaje: {tema}**")
+            st.write(
+                f"Este tema contiene {len(subtemas)} subtemas. "
+                "Presiona el botón para abrir sus subtemas y resolver sus exámenes."
+            )
+            clave_subtemas = f"subtemas_abiertos_{clave_tema}"
+            if st.button("🗺️ Abrir subtemas", key=f"abrir_{clave_tema}"):
+                st.session_state[clave_subtemas] = True
+            if st.session_state.get(clave_subtemas, False):
+                st.markdown(f"**Subtemas de {tema}**")
+                st.write("Presiona un subtema para abrir su teoría, banco de preguntas y examen:")
+                clave_subtema_activo = f"subtema_activo_{clave_tema}"
+                for indice_subtema, subtema in enumerate(subtemas, start=1):
+                    clave_subtema = f"{clave_tema}_{indice_subtema}"
+                    if st.button(
+                        f"📖 {indice_subtema}. {subtema}",
+                        key=f"seleccionar_{clave_subtema}",
+                    ):
+                        st.session_state[clave_subtema_activo] = clave_subtema
+                    if st.session_state.get(clave_subtema_activo) == clave_subtema:
+                        st.markdown(f"#### Subtema seleccionado: {subtema}")
+                        mostrar_subtema(
+                            subtema,
+                            area,
+                            etapa,
+                            clave_subtema,
+                        )
+            if tema == "Salud y ambiente" and st.session_state.nivel == "Secundaria":
+                st.info("Esta secuencia conecta ciencia, salud pública y decisiones responsables.")
+            elif any("octógono" in subtema.lower() for subtema in subtemas):
+                if st.button("Iniciar lección interactiva", key=f"leccion_{st.session_state.nivel}_{etapa}_{indice_tema}"):
+                    st.session_state.pantalla_actual = "leccion_cyt"
+                    st.rerun()
+            else:
+                st.info("Contenido guiado próximamente disponible.")
+
+    # CONTROL DE FLUJO INTERNO PARA MOSTRAR LA LECCIÓN DE OCTÓGONOS
+    if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_cyt":
+        st.markdown("---")
+        st.subheader("🔬 Lección: El Secreto de los Octógonos Negros")
+        
+        tab1, tab2, tab3 = st.tabs(["📑 Teoría", "🎨 Ejemplo Real", "❓ El Reto"])
+        
+        with tab1:
+            st.write("""
+            ¿Te has fijado en los símbolos negros de cuatro lados en las envolturas? Se llaman **octógonos de advertencia**.
+            Sirven para advertirte, de un solo vistazo, si ese producto tiene ingredientes en exceso:
+            * 🧂 **Alto en Sodio:** Demasiada sal (afecta la presión).
+            * 🍬 **Alto en Azúcar:** Exceso de dulce (causa diabetes).
+            * 🥩 **Alto en Grasas Saturadas:** Grasas pesadas para el corazón.
+            """)
+            
+        with tab2:
+            st.write("""
+            Imagina que vas a la bodega por una merienda:
+            * **Cereal de caja:** Dice '¡Con Vitaminas!' pero tiene el octógono **'Alto en Azúcar'**.
+            * **Yogur natural:** No tiene ningún octógono negro.
+            
+            **Regla de oro:** A menos octógonos, más saludable es el alimento. No te dejes llevar por la publicidad.
+            """)
+            
+        with tab3:
+            st.write("**Pregunta:** Encuentras una jamonada que dice **'Alto en Sodio'**. ¿Qué significa?")
+            respuesta = st.radio("Selecciona tu respuesta:", [
+                "Tiene demasiada azúcar y causa caries.",
+                "Contiene mucha sal y debes moderar su consumo.",
+                "Es 100% saludable porque el sodio es una vitamina."
+            ])
+            
+            if st.button("💡 Solicitar Pista del Tutor"):
+                st.info("🤖 Tutor IA: Recuerda que Sodio significa Sal.")
+                
+            if st.button("Enviar Respuesta 🚀"):
+                if respuesta == "Contiene mucha sal y debes moderar su consumo.":
+                    st.success("¡Excelente respuesta! El sodio es sal. Ganaste +10 puntos.")
+                    if not st.session_state.leccion_completada:
+                        st.session_state.puntos += 10
+                        st.session_state.leccion_completada = True
+                    st.balloons()
+                else:
+                    st.error("Respuesta incorrecta. ¡Revisa la teoría o la pista e inténtalo de nuevo!")
+
+# PANTALLA 2: PAYWALL (PAGO)
+elif menu == "👑 Hazte Premium":
+    st.subheader("🚀 Desbloquea Tu Máximo Potencial")
+    st.write("Aprende lo esencial de la vida sin límites y prepárate al más alto nivel escolar.")
+    
+    st.markdown("""
+    * 🌟 **Acceso ilimitado** a todos los temas avanzados y preuniversitarios.
+    * 📶 **Modo Sin Internet** para estudiar donde quieras sin gastar tus datos.
+    * 🤖 **Tutor de Inteligencia Artificial** 24/7 para resolver cualquier duda.
+    * 🎓 **Certificados oficiales** firmados al terminar cada nivel.
+    """)
+    
+    if st.session_state.premium and not st.session_state.premium_pagado:
+        fecha_expiracion = datetime.fromisoformat(st.session_state.premium_expira).strftime("%d/%m/%Y")
+        st.info(f"🎁 Tu prueba gratuita termina el {fecha_expiracion}. Los temas adicionales se retirarán después de esa fecha.")
+    elif st.session_state.premium_pagado:
+        st.info("✅ Suscripción activa: $3.33 USD / mes. Los temas Premium permanecen disponibles.")
+    else:
+        st.info("🎁 **Pruébalo GRATIS por 7 días.** Después puedes continuar por $3.33 USD / mes.")
+    
+    if not st.session_state.premium and st.button("🌟 INICIAR MI PRUEBA GRATIS"):
+        st.session_state.premium = True
+        st.session_state.premium_pagado = False
+        st.session_state.premium_expira = (
+            datetime.now() + timedelta(days=7)
+        ).isoformat()
+        st.session_state.redirigir_inicio = True
+        st.success("¡Felicidades! Ahora tienes acceso a toda la experiencia Premium.")
+        st.rerun()
+    if not st.session_state.premium_pagado and st.button("💳 Continuar por $3.33 USD/mes"):
+        st.session_state.premium = True
+        st.session_state.premium_pagado = True
+        st.session_state.premium_expira = None
+        st.session_state.redirigir_inicio = True
+        st.success("Suscripción Premium activada por $3.33 USD/mes.")
+        st.rerun()
+
+# PANTALLA 3: PROGRESO
+elif menu == "📊 Mi Progreso":
+    st.subheader("Tus Logros Educativos")
+    st.metric(label="Puntos Totales Acumulados", value=f"{st.session_state.puntos} PTS")
+    temas_aprobados, total_subtemas, progreso = obtener_progreso_nivel(
+        st.session_state.nivel
+    )
+    st.progress(progreso / 100)
+    st.write(
+        f"Avance del nivel: {progreso:.1f}% "
+        f"({temas_aprobados} de {total_subtemas} temas aprobados)."
+    )
+    
+    if st.session_state.premium:
+        st.write("Suscripción gestionada mediante Google Play / App Store.")
+        if st.button("Cancelar Suscripción (Demostración de un clic)"):
+            st.session_state.premium = False
+            st.session_state.premium_pagado = False
+            st.session_state.redirigir_inicio = True
+            st.info("Suscripción cancelada correctamente.")
+            st.rerun()
