@@ -47,7 +47,13 @@ if menu == "🏠 Inicio / Materias":
             st.rerun()
         if st.button("🔒 Lección 2: Física del movimiento (Premium)", key="cyt_l2"):
             st.warning("Esta lección requiere suscripción mensual.")
-            
+
+        # SUBTEMA para CIENCIA Y TECNOLOGÍA
+        with st.expander("Subtema: Etiquetas y Octógonos"):
+            st.write("Aprende a leer etiquetas nutricionales y el significado de los octógonos.")
+            if st.button("Ver detalles de Etiquetas", key="sub_cyt_detail"):
+                st.info("Las etiquetas muestran información clave: porciones, calorías, y advertencias como los octógonos.")
+
     # MATERIA 2: MATEMÁTICAS
     with st.expander("📐 MATEMÁTICAS (Color: Azul)"):
         st.write("Domina los números en tus compras del día a día.")
@@ -56,11 +62,23 @@ if menu == "🏠 Inicio / Materias":
         if st.button("🔒 Lección 2: Ecuaciones del hogar (Premium)", key="mat_l2"):
             st.warning("Esta lección requiere suscripción mensual.")
 
+        # SUBTEMA para MATEMÁTICAS
+        with st.expander("Subtema: Porcentajes y Descuentos"):
+            st.write("Aplica porcentajes para calcular descuentos y vueltos en compras reales.")
+            if st.button("Ejemplo: Calcular descuento 20%", key="sub_mat_example"):
+                st.info("Si un producto cuesta $50 y tiene 20% de descuento, pagas $40.")
+
     # MATERIA 3: COMUNICACIÓN
     with st.expander("✍️ COMUNICACIÓN (Color: Rojo)"):
         st.write("Expresate correctamente en redes y correos.")
         if st.button("▶️ Lección 1: El punto y la coma en WhatsApp", key="com_l1"):
             st.info("Próximamente disponible.")
+
+        # SUBTEMA para COMUNICACIÓN
+        with st.expander("Subtema: Netiqueta y Ortografía"):
+            st.write("Buenas prácticas para escribir mensajes claros y respetuosos en redes sociales y correo.")
+            if st.button("Ver consejo rápido", key="sub_com_tip"):
+                st.info("Usa emoticonos con moderación y revisa la ortografía antes de enviar.")
 
     # MATERIA 4: INGLÉS (Nuevo)
     with st.expander("🟣 INGLÉS (Color: Morado)"):
@@ -70,6 +88,12 @@ if menu == "🏠 Inicio / Materias":
             st.rerun()
         if st.button("🔒 Lección 2: Verbos irregulares (Premium)", key="eng_l2"):
             st.warning("Esta lección requiere suscripción mensual.")
+
+        # SUBTEMA para INGLÉS
+        with st.expander("Subtema: Estructura básica — Presente Simple"):
+            st.write("Introducción al presente simple: 'I am', 'You are', 'He/She/It is', y verbos comunes.")
+            if st.button("Ver ejemplo Presente Simple", key="sub_eng_example"):
+                st.info("I work, You work, He works — para la 3ª persona se añade 's' al verbo.")
 
     # CONTROL DE FLUJO INTERNO PARA MOSTRAR LA LECCIÓN DE OCTÓGONOS
     if "pantalla_actual" in st.session_state and st.session_state.pantalla_actual == "leccion_cyt":
