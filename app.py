@@ -13,10 +13,10 @@ if st.button("Ingresar"):
     # Mostrar globos también al presionar "Ingresar"
     st.balloons()
 
-    # Mostrar un mapa mundi completo como planeta tierra
-    # Crear una cuadrícula de puntos alrededor del mundo
-    latitudes = np.linspace(-90, 90, 19)  # Filas
-    longitudes = np.linspace(-180, 180, 37)  # Columnas
+    # Crear un mapa que representa el planeta tierra
+    # Generar una malla densa de puntos para simular la forma del planeta
+    latitudes = np.linspace(-90, 90, 36)
+    longitudes = np.linspace(-180, 180, 72)
     
     coords_list = []
     for lat in latitudes:
@@ -25,5 +25,7 @@ if st.button("Ingresar"):
     
     coords = pd.DataFrame(coords_list)
     
-    # Mostrar el mapa mundi completo
-    st.map(coords, zoom=0)
+    # Mostrar el mapa del planeta tierra
+    st.map(coords, zoom=0, use_container_width=True)
+    
+    st.info("🌍 Este es el mapa del planeta tierra con una cuadrícula global de puntos")
