@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MathLab - Aplicación Matemática</title>
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+            --primary: #2ecc71;
+            --primary-hover: #27ae60;
+            --accent: #3498db;
+            --danger: #e74c3c;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: var(--text-main);
+        }
+
+        /* Sistema de Pestañas */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 10px;
+            overflow-x: auto;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 8px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            background-color: rgba(0,0,0,0.03);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+
+        .panel {
+            display: none;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        /* Elementos Comunes */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+            transition: border 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        button.btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button.btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .result-box {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: var(--bg-color);
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+            border-left: 4px solid var(--accent);
+        }
+
+        /* Estilos del Quiz */
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: var(--bg-color);
+            border-radius: 8px;
+        }
+
+        .question {
+            font-size: 22px;
+            font-weight: bold;
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        /* Estilos del Graficador */
+        canvas {
+            width: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>MathLab Pro</h1>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('quiz')">🧠 Quiz</button>
+        <button class="tab-btn" onclick="switchTab('solver')">🧮 Solucionador</button>
+        <button class="tab-btn" onclick="switchTab('graph')">📈 Graficador</button>
+    </div>
+
+    <!-- PANEL 1: QUIZ -->
+    <div id="panel-quiz" class="panel active">
+        <div class="quiz-header">
+            <span>Racha Actual: <strong id="score" style="color: var(--primary)">0</strong></span>
+            <span id="feedback">🎯 ¡Suerte!</span>
+        </div>
+        <div class="question" id="question-text">¿Cuánto es 5 + 3?</div>
+        <div class="input-group">
+            <input type="number" id="quiz-answer" placeholder="Tu respuesta numéricas..." onkeydown="if(event.key==='Enter') checkAnswer()">
+        </div>
+        <button class="btn" onclick="checkAnswer()">Enviar Respuesta</button>
+    </div>
+
+    <!-- PANEL 2: SOLUCIONADOR -->
+    <div id="panel-solver" class="panel">
+        <p style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">Resuelve ecuaciones cuadráticas ax² + bx + c = 0</p>
+        <div class="grid-inputs">
+            <div class="input-group">
+                <label>a</label>
+                <input type="number" id="eq-a" value="1">
+            </div>
+            <div class="input-group">
+                <label>b</label>
+                <input type="number" id="eq-b" value="-5">
+            </div>
+            <div class="input-group">
+                <label>c</label>
+                <input type="number" id="eq-c" value="6">
+            </div>
+        </div>
+        <button class="btn" onclick="solveEquation()">Resolver Paso a Paso</button>
+        <div id="solver-result" class="result-box" style="display: none;"></div>
+    </div>
+
+    <!-- PANEL 3: GRAFICADOR -->
+    <div id="panel-graph" class="panel">
+        <p style="margin-bottom: 15px; font-size: 14px; color: var(--text-muted);">Grafica funciones cuadráticas y = ax² + bx + c</p>
+        <div class="grid-inputs">
+            <div class="input-group">
+                <label>a</label>
+                <input type="number" id="g-a" value="1" step="0.5" oninput="drawGraph()">
+            </div>
+            <div class="input-group">
+                <label>b</label>
+                <input type="number" id="g-b" value="0" step="0.5" oninput="drawGraph()">
+            </div>
+            <div class="input-group">
+                <label>c</label>
+                <input type="number" id="g-c" value="0" step="0.5" oninput="drawGraph()">
+            </div>
+        </div>
+        <canvas id="graphCanvas" width="500" height="300"></canvas>
+    </div>
+</div>
+
+<script>
+    // CONTROL DE PESTAÑAS
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+        
+        event.target.classList.add('active');
+        document.getElementById(`panel-${tabId}`).classList.add('active');
+
+        if(tabId === 'graph') {
+            setTimeout(drawGraph, 50); // Forzar render al abrir canvas
+        }
+    }
+
+    // LÓGICA DEL QUIZ MENTAL
+    let currentAnswer = 0;
+    let score = 0;
+
+    function generateQuestion() {
+        const types = ['+', '-', '*', '/', '^2'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        let num1, num2;
+
+        switch(type) {
+            case '+':
+                num1 = Math.floor(Math.random() * 50) + 1;
+                num2 = Math.floor(Math.random() * 50) + 1;
+                document.getElementById('question-text').innerText = `¿Cuánto es ${num1} + ${num2}?`;
+                currentAnswer = num1 + num2;
+                break;
+            case '-':
+                num1 = Math.floor(Math.random() * 50) + 20;
+                num2 = Math.floor(Math.random() * num1);
+                document.getElementById('question-text').innerText = `¿Cuánto es ${num1} - ${num2}?`;
+                currentAnswer = num1 - num2;
+                break;
+            case '*':
+                num1 = Math.floor(Math.random() * 12) + 2;
+                num2 = Math.floor(Math.random() * 12) + 2;
+                document.getElementById('question-text').innerText = `¿Cuánto es ${num1} × ${num2}?`;
+                currentAnswer = num1 * num2;
+                break;
+            case '/':
+                num2 = Math.floor(Math.random() * 10) + 2;
+                currentAnswer = Math.floor(Math.random() * 10) + 1;
+                num1 = num2 * currentAnswer; // Asegurar división exacta
+                document.getElementById('question-text').innerText = `¿Cuánto es ${num1} ÷ ${num2}?`;
+                break;
+            case '^2':
+                num1 = Math.floor(Math.random() * 15) + 1;
+                document.getElementById('question-text').innerText = `¿Cuánto es ${num1}² (al cuadrado)?`;
+                currentAnswer = num1 * num1;
+                break;
+        }
+        document.getElementById('quiz-answer').value = '';
+        document.getElementById('quiz-answer').focus();
+    }
+
+    function checkAnswer() {
+        const userAnswer = parseInt(document.getElementById('quiz-answer').value);
+        const feedback = document.getElementById('feedback');
+        
+        if (userAnswer === currentAnswer) {
+            score++;
+            feedback.innerText = "✅ ¡Correcto!";
