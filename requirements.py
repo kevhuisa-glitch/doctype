@@ -1,1 +1,3 @@
 plotly
+plotly-geo
+geopandas
